@@ -43,82 +43,75 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="flex flex-col justify-center items-center w-full min-h-screen">
-      <h1 className="text-3xl font-bold text-amber-500">RetroDex</h1>
-      <p className="text-muted-foreground">
-        Tu Colección Personal de Películas
-      </p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-amber-500">Bienvenido de vuelta</CardTitle>
+        <CardDescription>Inicia sesión para continuar</CardDescription>
+      </CardHeader>
 
-      <Card className="mt-4 max-w-md w-full">
-        <CardHeader>
-          <CardTitle>Bienvenido de vuelta a RetroDex</CardTitle>
-          <CardDescription>Inicia sesión para continuar</CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form action={formAction} noValidate className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="nombre@correo.com"
-                  required
-                  className="pl-10"
-                />
-              </div>
+      <CardContent>
+        <form action={formAction} noValidate className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo electrónico</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="nombre@correo.com"
+                required
+                className="pl-10"
+              />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  aria-label={
-                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                  }
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-3 flex items-center text-muted-foreground"
-                >
-                  {showPassword ? (
-                    <Eye className="h-4 w-4" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={
+                  showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-3 flex items-center text-muted-foreground"
+              >
+                {showPassword ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </button>
             </div>
+          </div>
 
-            {state?.error ? (
-              <p className="text-sm text-destructive" role="alert">
-                {state.error}
-              </p>
-            ) : null}
+          {state?.error ? (
+            <p className="text-sm text-destructive" role="alert">
+              {state.error}
+            </p>
+          ) : null}
 
-            <LoginButton />
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            ¿No tienes cuenta?{" "}
-            <Link
-              href="/signup"
-              className="text-amber-500 font-semibold underline-offset-4 hover:underline"
-            >
-              Regístrate
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+          <LoginButton />
+        </form>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          ¿No tienes cuenta?{" "}
+          <Link
+            href="/signup"
+            className="text-amber-500 font-semibold underline-offset-4 hover:underline"
+          >
+            Regístrate
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
   );
 }
