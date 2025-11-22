@@ -1,32 +1,80 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useMemo } from "react";
+import { usePathname } from "next/navigation";
+import {
+  ArrowLeftToLine,
+  ArrowRightToLine,
+  Popcorn,
+  Clapperboard,
+  ChartColumnDecreasing,
+  Bolt,
+} from "lucide-react";
+import {
+  SidebarProvider,
+  SidebarInset,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { AppSidebar } from "@/components/ui/app-sidebar";
+
+function SidebarToggleButton() {
+  const { state, toggleSidebar, isMobile, openMobile } = useSidebar();
+  const isCollapsed = isMobile ? !openMobile : state === "collapsed";
+  const Icon = isCollapsed ? ArrowRightToLine : ArrowLeftToLine;
+  const label = isCollapsed ? "Expandir menú" : "Contraer menú";
+
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      aria-label={label}
+      className="rounded-full bg-background/80 px-4 py-2 text-amber-500 shadow-sm cursor-pointer hover:text-primary transition"
+    >
+      <Icon className="h-5 w-5" />
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="border-b border-border bg-card/60 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              RetroDex
-            </p>
-            <h1 className="text-xl font-semibold">Área de la aplicación</h1>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            Placeholder layout
-          </span>
-        </div>
-      </header>
+  const pathname = usePathname();
+  const pageTitle = useMemo(() => {
+    if (!pathname || pathname === "/") return "Mi Colección";
+    if (pathname.startsWith("/discover")) return "Explorar";
+    if (pathname.startsWith("/dashboard")) return "Dashboard";
+    if (pathname.startsWith("/settings")) return "Ajustes";
+    return "Panel Principal";
+  }, [pathname]);
 
-      <main className="flex flex-1 flex-col px-6 py-8">
-        <section className="mb-6 rounded-lg border border-dashed border-border bg-card/40 p-6 text-sm text-muted-foreground">
-          <p>
-            Este es un layout temporal para el grupo <code>(app)</code>. Agrega
-            aquí la navegación, barras laterales o widgets globales cuando estén
-            listos.
-          </p>
-        </section>
+  const PageIcon = useMemo(() => {
+    if (!pathname || pathname === "/") return Popcorn;
+    if (pathname.startsWith("/discover")) return Clapperboard;
+    if (pathname.startsWith("/dashboard")) return ChartColumnDecreasing;
+    if (pathname.startsWith("/settings")) return Bolt;
+    return Popcorn;
+  }, [pathname]);
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset className="p-4">
+        <header className="mb-6 space-y-2">
+          <div className="flex items-center gap-3">
+            <SidebarToggleButton />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-6"
+            />
+            <div className="flex items-center gap-2 text-amber-500">
+              <PageIcon className="h-6 w-6" aria-hidden />
+              <h2 className="text-2xl font-semibold">{pageTitle}</h2>
+            </div>
+          </div>
+        </header>
         <div className="flex-1">{children}</div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
