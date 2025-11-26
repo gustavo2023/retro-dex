@@ -87,7 +87,7 @@ export default function SignupPage() {
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="Contraseña debe tener al menos 8 caracteres"
                 required
                 minLength={8}
                 className="pr-10"
@@ -98,12 +98,12 @@ export default function SignupPage() {
                   showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-3 flex items-center text-muted-foreground"
+                className="absolute inset-y-0 right-3 flex items-center text-muted-foreground cursor-pointer"
               >
                 {showPassword ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
                   <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
