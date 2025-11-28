@@ -20,13 +20,13 @@ export async function login(
   };
 
   if (!data.email || !data.password) {
-    return { error: "Correo electrónico y contraseña son requeridos." };
+    return { error: "Email and password are required." };
   }
 
   const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    return { error: "Correo electrónico o contraseña inválidos." };
+    return { error: "Invalid email or password." };
   }
 
   // Success
@@ -47,10 +47,10 @@ export async function signup(
   };
 
   if (!data.email || !data.password || !data.username) {
-    return { error: "Todos los campos son requeridos." };
+    return { error: "All fields are required." };
   }
   if (data.password.length < 8) {
-    return { error: "La contraseña debe tener al menos 8 caracteres." };
+    return { error: "Password must be at least 8 characters long." };
   }
 
   const { error } = await supabase.auth.signUp({
@@ -66,10 +66,10 @@ export async function signup(
   if (error) {
     console.error("Sign-up Error:", error.message);
     if (error.message.includes("User already registered")) {
-      return { error: "Ya existe una cuenta con este correo electrónico." };
+      return { error: "An account with this email already exists." };
     }
     return {
-      error: "Error al crear la cuenta. Por favor, inténtalo de nuevo.",
+      error: "Error creating account. Please try again.",
     };
   }
 

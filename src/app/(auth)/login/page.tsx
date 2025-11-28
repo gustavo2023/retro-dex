@@ -28,10 +28,10 @@ function LoginButton() {
     >
       {pending ? (
         <>
-          <Spinner className="mr-2 h-4 w-4" /> Iniciando sesión...
+          <Spinner className="mr-2 h-4 w-4" /> Signing in...
         </>
       ) : (
-        "Iniciar sesión"
+        "Sign In"
       )}
     </Button>
   );
@@ -45,21 +45,21 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-amber-500">Bienvenido de vuelta</CardTitle>
-        <CardDescription>Inicia sesión para continuar</CardDescription>
+        <CardTitle className="text-amber-500">Welcome Back</CardTitle>
+        <CardDescription>Sign in to continue</CardDescription>
       </CardHeader>
 
       <CardContent>
         <form action={formAction} noValidate className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
+            <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="nombre@correo.com"
+                placeholder="name@example.com"
                 required
                 className="pl-10"
               />
@@ -67,7 +67,7 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -78,9 +78,7 @@ export default function LoginPage() {
               />
               <button
                 type="button"
-                aria-label={
-                  showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute inset-y-0 right-3 flex items-center text-muted-foreground cursor-pointer"
               >
@@ -102,12 +100,12 @@ export default function LoginPage() {
           <LoginButton />
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          ¿No tienes cuenta?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             href="/signup"
             className="text-amber-500 font-semibold underline-offset-4 hover:underline"
           >
-            Regístrate
+            Sign Up
           </Link>
         </p>
       </CardContent>

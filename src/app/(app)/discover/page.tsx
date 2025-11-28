@@ -23,16 +23,16 @@ type MovieResult = {
 
 const mockCollections = [
   {
-    title: "Visionados recientes",
-    description: "Historias que la comunidad está revisitando",
+    title: "Recently Viewed",
+    description: "Stories the community is revisiting",
   },
   {
-    title: "Clásicos que regresan",
-    description: "Películas que no pasan de moda",
+    title: "Classics That Return",
+    description: "Movies that never go out of style",
   },
   {
-    title: "Listas colaborativas",
-    description: "Construidas por curadores invitados",
+    title: "Collaborative Lists",
+    description: "Built by guest curators",
   },
 ];
 
@@ -71,7 +71,7 @@ export default function DiscoverPage() {
       setResults([]);
       setHasSearched(true);
       setErrorMessage(
-        err instanceof Error ? err.message : "No se pudo completar la búsqueda."
+        err instanceof Error ? err.message : "Search could not be completed."
       );
     } finally {
       setIsSearching(false);
@@ -83,9 +83,9 @@ export default function DiscoverPage() {
       <Card className="border-dashed">
         <CardHeader className="space-y-4">
           <div>
-            <CardTitle>Explora nuevas gemas retro</CardTitle>
+            <CardTitle>Explore New Retro Gems</CardTitle>
             <CardDescription>
-              Busca directamente en TMDB sin exponer el token desde el cliente.
+              Search directly on TMDB without exposing the token from the client.
             </CardDescription>
           </div>
           <form
@@ -120,7 +120,7 @@ export default function DiscoverPage() {
             results.length === 0 &&
             !errorMessage && (
               <p className="text-sm text-muted-foreground">
-                No encontramos resultados para &quot;{query}&quot;.
+                No results found for &quot;{query}&quot;.
               </p>
             )}
 
@@ -133,12 +133,12 @@ export default function DiscoverPage() {
                     <CardDescription>
                       {movie.release_date
                         ? new Date(movie.release_date).toLocaleDateString()
-                        : "Sin fecha registrada"}
+                        : "No release date available"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-3">
-                      {movie.overview || "Sin sinopsis disponible."}
+                      {movie.overview || "No synopsis available."}
                     </p>
                   </CardContent>
                 </Card>

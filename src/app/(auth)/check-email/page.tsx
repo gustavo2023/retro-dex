@@ -13,21 +13,21 @@ export default function CheckEmailPage() {
       <CardHeader className="text-center">
         <MailCheck className="mx-auto h-10 w-10 text-amber-500" />
         <CardTitle className="text-amber-500 text-lg">
-          Revisa tu bandeja de entrada
+          Check your email inbox
         </CardTitle>
         <CardDescription>
-          Te enviamos un correo para verificar tu cuenta de RetroDex.
+          We have sent you an email to verify your RetroDex account.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4 text-sm text-muted-foreground">
         <p>
-          Abre tu bandeja de entrada, busca el mensaje que acabamos de enviar y
-          haz clic en el enlace para confirmar tu cuenta.
+          Open your inbox, find the message we just sent, and click the link to
+          confirm your account.
         </p>
         <p>
-          Puedes cerrar esta ventana con total seguridad; volverás a RetroDex en
-          cuanto confirmes desde tu correo.
+          You can safely close this window; you&apos;ll return to RetroDex as
+          soon as you confirm from your email.
         </p>
       </CardContent>
     </Card>

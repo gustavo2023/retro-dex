@@ -33,7 +33,7 @@ serve(async (req: Request) => {
       throw new Error("TMDB access token is not configured");
     }
 
-    // 1. Auth Check
+    // Auth Check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -64,13 +64,13 @@ serve(async (req: Request) => {
       });
     }
 
-    // 2. Parse Request
+    // Parse Request
     const { endpoint, query, page = 1 } = await req.json();
     const normalizedPage = Number(page) > 0 ? Number(page) : 1;
 
     let url = "";
 
-    // 3. Routing Logic
+    // Routing Logic
     switch (endpoint) {
       case "search":
         if (!query) throw new Error("Query is required for search");
@@ -91,7 +91,7 @@ serve(async (req: Request) => {
         throw new Error("Invalid endpoint specified");
     }
 
-    // 4. Fetch from TMDB
+    // Fetch from TMDB
     const tmdbResponse = await fetch(url, {
       headers: {
         Authorization: `Bearer ${tmdbToken}`,

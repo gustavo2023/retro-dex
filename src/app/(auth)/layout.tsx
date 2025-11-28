@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-amber-500">RetroDex</h1>
         <p className="text-muted-foreground">
-          Tu Colección Personal de Películas
+          Your movie personal movie collection
         </p>
       </div>
       <div className="mt-6 w-full max-w-md">{children}</div>

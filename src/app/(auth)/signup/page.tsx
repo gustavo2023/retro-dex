@@ -28,10 +28,10 @@ function SignupButton() {
     >
       {pending ? (
         <>
-          <Spinner className="mr-2 h-4 w-4" /> Creando cuenta...
+          <Spinner className="mr-2 h-4 w-4" /> Creating account...
         </>
       ) : (
-        "Crear cuenta"
+        "Create account"
       )}
     </Button>
   );
@@ -45,14 +45,14 @@ export default function SignupPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-amber-500">Crear una cuenta</CardTitle>
-        <CardDescription>Regístrate para empezar tu colección</CardDescription>
+        <CardTitle className="text-amber-500">Create an account</CardTitle>
+        <CardDescription>Sign up to start your collection</CardDescription>
       </CardHeader>
 
       <CardContent>
         <form action={formAction} noValidate className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="username">Nombre de usuario</Label>
+            <Label htmlFor="username">Username</Label>
             <div className="relative">
               <CircleUserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -66,14 +66,14 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
+            <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="nombre@correo.com"
+                placeholder="name@example.com"
                 required
                 className="pl-10"
               />
@@ -81,22 +81,20 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Contraseña debe tener al menos 8 caracteres"
+                placeholder="Password must be at least 8 characters long"
                 required
                 minLength={8}
                 className="pr-10"
               />
               <button
                 type="button"
-                aria-label={
-                  showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute inset-y-0 right-3 flex items-center text-muted-foreground cursor-pointer"
               >
@@ -119,12 +117,12 @@ export default function SignupPage() {
         </form>
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          ¿Ya tienes cuenta?{" "}
+          Already have an account?{" "}
           <Link
             href="/login"
             className="text-amber-500 font-semibold underline-offset-4 hover:underline"
           >
-            Inicia sesión
+            Sign in
           </Link>
         </p>
       </CardContent>

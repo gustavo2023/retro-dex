@@ -41,11 +41,11 @@ function SidebarToggleButton() {
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const pageTitle = useMemo(() => {
-    if (!pathname || pathname === "/") return "Mi Colección";
-    if (pathname.startsWith("/discover")) return "Explorar";
+    if (!pathname || pathname === "/") return "My Collection";
+    if (pathname.startsWith("/discover")) return "Explore";
     if (pathname.startsWith("/dashboard")) return "Dashboard";
-    if (pathname.startsWith("/settings")) return "Ajustes";
-    return "Panel Principal";
+    if (pathname.startsWith("/settings")) return "Settings";
+    return "Main Panel";
   }, [pathname]);
 
   const PageIcon = useMemo(() => {
