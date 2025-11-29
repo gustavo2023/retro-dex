@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
@@ -19,6 +28,27 @@ type MovieResult = {
   title: string;
   release_date?: string;
   overview?: string;
+  poster_path?: string | null;
+  original_language?: string;
+  vote_average?: number;
+  vote_count?: number;
+};
+
+const getPosterUrl = (
+  path?: string | null,
+  size: "w500" | "w780" = "w500"
+) => (path ? `https://image.tmdb.org/t/p/${size}${path}` : null);
+
+const formatReleaseDate = (date?: string) => {
+  if (!date) return "Sin fecha de estreno disponible";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "Sin fecha de estreno disponible";
+
+  return new Intl.DateTimeFormat("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(parsed);
 };
 
 const mockCollections = [
@@ -65,7 +95,10 @@ export default function DiscoverPage() {
       }
 
       const payload = (data as { results?: MovieResult[] }) ?? {};
-      setResults(payload.results ?? []);
+      const sortedResults = [...(payload.results ?? [])].sort(
+        (a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0)
+      );
+      setResults(sortedResults);
       setHasSearched(true);
     } catch (err) {
       setResults([]);
@@ -125,24 +158,93 @@ export default function DiscoverPage() {
             )}
 
           {results.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {results.map((movie) => (
-                <Card key={movie.id} className="border border-dashed">
-                  <CardHeader>
-                    <CardTitle className="text-base">{movie.title}</CardTitle>
-                    <CardDescription>
-                      {movie.release_date
-                        ? new Date(movie.release_date).toLocaleDateString()
-                        : "No release date available"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {movie.overview || "No synopsis available."}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {results.map((movie) => {
+                const posterUrl = getPosterUrl(movie.poster_path);
+
+                return (
+                  <Dialog key={movie.id}>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="group w-full text-left"
+                        aria-label={`Ver detalles de ${movie.title}`}
+                      >
+                        <Card className="border border-dashed !gap-0 !py-0 overflow-hidden transition hover:border-primary/50 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary">
+                          <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+                            {posterUrl ? (
+                              <Image
+                                src={posterUrl}
+                                alt={`Poster de ${movie.title}`}
+                                fill
+                                sizes="(min-width: 1280px) 25vw, (min-width: 768px) 35vw, 90vw"
+                                className="object-cover transition duration-300 group-hover:scale-105"
+                                priority={false}
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                Sin póster
+                              </div>
+                            )}
+                          </div>
+                          <CardContent className="space-y-1 px-4 py-3">
+                            <CardTitle className="text-base">{movie.title}</CardTitle>
+                            <CardDescription>
+                              {formatReleaseDate(movie.release_date)}
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <div className="flex flex-col gap-6 sm:flex-row">
+                        <div className="relative mx-auto aspect-[3/4] w-36 overflow-hidden rounded-lg bg-muted sm:mx-0 sm:w-48">
+                          {posterUrl ? (
+                            <Image
+                              src={posterUrl}
+                              alt={`Poster de ${movie.title}`}
+                              fill
+                              sizes="(min-width: 640px) 12rem, 10rem"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                              Sin póster disponible
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-4">
+                          <DialogHeader className="text-left">
+                            <DialogTitle>{movie.title}</DialogTitle>
+                            <DialogDescription>
+                              {formatReleaseDate(movie.release_date)}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-2 text-sm">
+                            <p className="text-muted-foreground">
+                              {movie.overview || "No hay sinopsis disponible."}
+                            </p>
+                            <ul className="space-y-1 text-muted-foreground">
+                              {movie.original_language && (
+                                <li>
+                                  Idioma original: {movie.original_language.toUpperCase()}
+                                </li>
+                              )}
+                              {typeof movie.vote_average === "number" && (
+                                <li>
+                                  Valoración TMDB: {movie.vote_average.toFixed(1)} ({
+                                    movie.vote_count ?? 0
+                                  } {movie.vote_count === 1 ? "voto" : "votos"})
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                );
+              })}
             </div>
           )}
         </CardContent>
