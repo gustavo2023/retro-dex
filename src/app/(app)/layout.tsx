@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/ui/app-sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 function SidebarToggleButton() {
   const { state, toggleSidebar, isMobile, openMobile } = useSidebar();
@@ -73,7 +74,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <div className="flex-1">{children}</div>
+        <main className="flex-1">{children}</main>
+        <Toaster richColors position="top-right" />
       </SidebarInset>
     </SidebarProvider>
   );
