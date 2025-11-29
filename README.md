@@ -1,14 +1,12 @@
-<div align="center">
-
 # RetroDex
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-Vintage movie collecting, reimagined.
+---
 
-[Live Demo](https://retro-dex.vercel.app/)
+## Live Demo
 
-</div>
+[RetroDex](https://retro-dex.vercel.app/)
 
 ## Table of Contents
 
@@ -17,9 +15,10 @@ Vintage movie collecting, reimagined.
 3. [Installation](#installation)
 4. [Folder Structure](#folder-structure)
 5. [Environment & TMDB Usage](#environment--tmdb-usage)
-6. [Available Scripts](#available-scripts)
-7. [Developers](#developers)
-8. [License](#license)
+6. [Developers](#developers)
+7. [License](#license)
+
+---
 
 ## Project Description
 
@@ -30,6 +29,8 @@ RetroDex is a “Collectors Special Edition” web application that helps cineph
 - Manage custom metadata such as reviews, ratings, status, and estimated value stored in Supabase Postgres with Row Level Security.
 - Visualize collection data through dashboards and curated featured sections (Popular, Top Rated, Upcoming).
 
+---
+
 ## Tech Stack
 
 - **Framework**: Next.js (App Router) + TypeScript
@@ -39,6 +40,8 @@ RetroDex is a “Collectors Special Edition” web application that helps cineph
 - **Notifications**: Sonner
 - **API**: TMDB (proxied through Supabase Edge Functions)
 
+---
+
 ## Installation
 
 ```bash
@@ -46,17 +49,16 @@ git clone https://github.com/gustavo2023/retro-dex.git
 cd retro-dex
 npm install
 
-# copy env template and add credentials
-cp .env.example .env.local
-
 npm run dev
 ```
 
-> The app runs on http://localhost:3000 by default.
+> The app runs on <http://localhost:3000> by default.
+
+---
 
 ## Folder Structure
 
-```
+```bash
 retro-dex/
 ├── public/
 ├── src/
@@ -91,21 +93,23 @@ retro-dex/
 └── next.config.ts
 ```
 
+---
+
 ## Environment & TMDB Usage
 
 - All TMDB requests flow through the Supabase Edge Function `search-tmdb`, ensuring the TMDB API token never reaches the client.
-- Required environment variables (see `.env.example`):
-	- `NEXT_PUBLIC_SUPABASE_URL`
-	- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-	- `SUPABASE_SERVICE_ROLE_KEY`
-	- `TMDB_ACCESS_TOKEN`
+
 - The Edge Function supports the following endpoints via the `endpoint` body field: `search`, `popular`, `top_rated`, `upcoming`.
+
+---
 
 ## Developers
 
 - Gustavo Gutiérrez – [@gustavo2023](https://github.com/gustavo2023)
 - Jesús Rivas – [@rivas1731](https://github.com/rivas1731)
 - Adriano Robati – [@AdrianoR05](https://github.com/AdrianoR05)
+
+---
 
 ## License
 
