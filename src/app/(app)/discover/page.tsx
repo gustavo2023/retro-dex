@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Flame, Star, Clock, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 type MovieResult = {
   id: number;
@@ -40,6 +40,42 @@ type AddState = {
   message?: string;
 };
 
+type CollectionKey = "popular" | "top_rated" | "upcoming";
+
+const collectionSections: Array<{
+  key: CollectionKey;
+  title: string;
+  description: string;
+  endpoint: CollectionKey;
+  Icon: LucideIcon;
+  accentClass: string;
+}> = [
+  {
+    key: "popular",
+    title: "Popular Movies",
+    description: "Movies that everyone is talking about",
+    endpoint: "popular",
+    Icon: Flame,
+    accentClass: "text-orange-500",
+  },
+  {
+    key: "top_rated",
+    title: "Top Rated Movies",
+    description: "Movies with the highest ratings",
+    endpoint: "top_rated",
+    Icon: Star,
+    accentClass: "text-yellow-400",
+  },
+  {
+    key: "upcoming",
+    title: "Upcoming Movies",
+    description: "Movies that are coming soon",
+    endpoint: "upcoming",
+    Icon: Clock,
+    accentClass: "text-blue-400",
+  },
+];
+
 const getPosterUrl = (
   path?: string | null,
   size: "w500" | "w780" = "w500"
@@ -50,7 +86,7 @@ const formatReleaseDate = (date?: string) => {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return "No release date available";
 
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -64,21 +100,6 @@ const getReleaseYear = (date?: string) => {
   return parsed.getFullYear();
 };
 
-const mockCollections = [
-  {
-    title: "Recently Viewed",
-    description: "Stories the community is revisiting",
-  },
-  {
-    title: "Classics That Return",
-    description: "Movies that never go out of style",
-  },
-  {
-    title: "Collaborative Lists",
-    description: "Built by guest curators",
-  },
-];
-
 export default function DiscoverPage() {
   const supabase = useMemo(() => createClient(), []);
   const [query, setQuery] = useState("");
@@ -87,9 +108,13 @@ export default function DiscoverPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [addStates, setAddStates] = useState<Record<number, AddState>>({});
-  const [profileId, setProfileId] = useState<string | null>(null);
   const [ownedTmdbIds, setOwnedTmdbIds] = useState<Record<number, boolean>>({});
   const [isLoadingCollection, setIsLoadingCollection] = useState(false);
+  const [featuredData, setFeaturedData] = useState<
+    Partial<Record<CollectionKey, MovieResult[]>>
+  >({});
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
+  const [featuredError, setFeaturedError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -100,12 +125,11 @@ export default function DiscoverPage() {
 
       const user = data?.user;
       if (!user) {
-        setProfileId(null);
         setOwnedTmdbIds({});
+        setIsLoadingCollection(false);
         return;
       }
 
-      setProfileId(user.id);
       setIsLoadingCollection(true);
       const { data: movies, error } = await supabase
         .from("movies")
@@ -131,6 +155,61 @@ export default function DiscoverPage() {
     };
 
     loadUserAndCollection();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchFeatured = async () => {
+      setIsLoadingFeatured(true);
+      setFeaturedError(null);
+
+      try {
+        const responses = await Promise.all(
+          collectionSections.map(async (section) => {
+            const { data, error } = await supabase.functions.invoke(
+              "search-tmdb",
+              {
+                body: {
+                  endpoint: section.endpoint,
+                  page: 1,
+                },
+              }
+            );
+
+            if (error) {
+              throw new Error(error.message);
+            }
+
+            const payload = (data as { results?: MovieResult[] }) ?? {};
+            return [section.key, (payload.results ?? []).slice(0, 6)];
+          })
+        );
+
+        if (!isMounted) return;
+        setFeaturedData(Object.fromEntries(responses) as Partial<
+          Record<CollectionKey, MovieResult[]>
+        >);
+      } catch (err) {
+        if (!isMounted) return;
+        setFeaturedError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load featured movies."
+        );
+        setFeaturedData({});
+      } finally {
+        if (isMounted) {
+          setIsLoadingFeatured(false);
+        }
+      }
+    };
+
+    fetchFeatured();
 
     return () => {
       isMounted = false;
@@ -192,7 +271,7 @@ export default function DiscoverPage() {
       const releaseYear = getReleaseYear(movie.release_date);
       if (!releaseYear) {
         throw new Error(
-          "This movie lacks a valid release date and cannot be added."
+          "This movie does not have a valid release date."
         );
       }
 
@@ -218,12 +297,12 @@ export default function DiscoverPage() {
 
       setAddStates((prev) => ({ ...prev, [movie.id]: { status: "success" } }));
       setOwnedTmdbIds((prev) => ({ ...prev, [movie.id]: true }));
-      toast.success(`${movie.title} added to your collection!`);
+      toast.success(`${movie.title} was added to your collection.`);
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : "Could not add the movie.";
+          : "Failed to add the movie.";
       setAddStates((prev) => ({
         ...prev,
         [movie.id]: { status: "error", message },
@@ -233,12 +312,12 @@ export default function DiscoverPage() {
 
   return (
     <section className="space-y-8">
-      <Card className="border-dashed">
+      <Card className="border-dashed<">
         <CardHeader className="space-y-4">
           <div>
-            <CardTitle>Explore New Retro Gems</CardTitle>
+            <CardTitle className="mb-2">Explore New Retro Gems</CardTitle>
             <CardDescription>
-              Search directly on TMDB without exposing the token from the client.
+              Search for movies to discover and add to your collection
             </CardDescription>
           </div>
           <form
@@ -281,27 +360,34 @@ export default function DiscoverPage() {
           {results.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {results.map((movie) => {
-                const posterUrl = getPosterUrl(movie.poster_path);
                 const addState = addStates[movie.id];
                 const isAdding = addState?.status === "loading";
                 const isAdded = addState?.status === "success";
                 const alreadyOwned = ownedTmdbIds[movie.id];
                 const showSuccess = isAdded || alreadyOwned;
+                const posterUrl = getPosterUrl(movie.poster_path);
 
                 return (
-                  <Dialog key={movie.id}>
-                    <DialogTrigger asChild>
+                  <MovieDialogCard
+                    key={movie.id}
+                    movie={movie}
+                    addState={addState}
+                    isAdding={isAdding}
+                    showSuccess={showSuccess}
+                    isCollectionLoading={isLoadingCollection}
+                    onAdd={handleAddToCollection}
+                    trigger={
                       <button
                         type="button"
                         className="group w-full text-left"
-                        aria-label={`View details of ${movie.title}`}
+                        aria-label={`Ver detalles de ${movie.title}`}
                       >
-                        <Card className="border border-dashed !gap-0 !py-0 overflow-hidden transition hover:border-primary/50 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary">
+                        <Card className="border hover:border-amber-500 !gap-0 !py-0 overflow-hidden transition group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary">
                           <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
                             {posterUrl ? (
                               <Image
                                 src={posterUrl}
-                                alt={`Poster de ${movie.title}`}
+                                alt={`Poster of ${movie.title}`}
                                 fill
                                 sizes="(min-width: 1280px) 25vw, (min-width: 768px) 35vw, 90vw"
                                 className="object-cover transition duration-300 group-hover:scale-105"
@@ -309,7 +395,7 @@ export default function DiscoverPage() {
                               />
                             ) : (
                               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                Sin póster
+                                Poster not available
                               </div>
                             )}
                           </div>
@@ -321,78 +407,8 @@ export default function DiscoverPage() {
                           </CardContent>
                         </Card>
                       </button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <div className="flex flex-col gap-6 sm:flex-row">
-                        <div className="relative mx-auto aspect-[3/4] w-36 overflow-hidden rounded-lg bg-muted sm:mx-0 sm:w-48">
-                          {posterUrl ? (
-                            <Image
-                              src={posterUrl}
-                              alt={`Poster of ${movie.title}`}
-                              fill
-                              sizes="(min-width: 640px) 12rem, 10rem"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                              No poster available
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-4">
-                          <DialogHeader className="text-left">
-                            <DialogTitle>{movie.title}</DialogTitle>
-                            <DialogDescription>
-                              {formatReleaseDate(movie.release_date)}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-2 text-sm">
-                            <p className="text-muted-foreground">
-                              {movie.overview || "No synopsis available."}
-                            </p>
-                            <ul className="space-y-1 text-muted-foreground">
-                              {movie.original_language && (
-                                <li>
-                                  Original language: {movie.original_language.toUpperCase()}
-                                </li>
-                              )}
-                              {typeof movie.vote_average === "number" && (
-                                <li>
-                                  TMDB rating: {movie.vote_average.toFixed(1)} ({
-                                    movie.vote_count ?? 0
-                                  } {movie.vote_count === 1 ? "vote" : "votes"})
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                          <div className="space-y-2 pt-2">
-                            {showSuccess ? (
-                              <p className="text-sm text-emerald-600">
-                                Esta película ya está en tu colección.
-                              </p>
-                            ) : (
-                              <>
-                                <Button
-                                  onClick={() => handleAddToCollection(movie)}
-                                  disabled={isAdding || isLoadingCollection}
-                                  className="w-full sm:w-auto"
-                                >
-                                  <Plus className="size-4" aria-hidden="true" />
-                                  {isAdding ? "Adding..." : "Add to my collection"}
-                                </Button>
-                                {addState?.status === "error" &&
-                                  addState.message && (
-                                    <p className="text-sm text-destructive">
-                                      {addState.message}
-                                    </p>
-                                  )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                    }
+                  />
                 );
               })}
             </div>
@@ -401,26 +417,197 @@ export default function DiscoverPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {mockCollections.map((collection) => (
-          <Card key={collection.title} className="border-dashed">
-            <CardHeader>
-              <CardTitle>{collection.title}</CardTitle>
-              <CardDescription>{collection.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[1, 2, 3].map((index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-md" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-2/3" />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
+        {collectionSections.map((section) => {
+          const movies = featuredData[section.key] ?? [];
+          const { Icon, accentClass } = section;
+
+          return (
+            <Card key={section.key}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Icon className={`size-4 ${accentClass}`} aria-hidden="true" />
+                  {section.title}
+                </CardTitle>
+                <CardDescription>{section.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isLoadingFeatured && (
+                  <>
+                    {[1, 2, 3].map((index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <Skeleton className="h-12 w-12 rounded-md" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-3 w-2/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {!isLoadingFeatured && featuredError && (
+                  <p className="text-sm text-destructive">{featuredError}</p>
+                )}
+
+                {!isLoadingFeatured && !featuredError && movies.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No movies found for this category.
+                  </p>
+                )}
+
+                {!isLoadingFeatured &&
+                  !featuredError &&
+                  movies.slice(0, 3).map((movie) => {
+                    const addState = addStates[movie.id];
+                    const isAdding = addState?.status === "loading";
+                    const isAdded = addState?.status === "success";
+                    const alreadyOwned = ownedTmdbIds[movie.id];
+                    const showSuccess = isAdded || alreadyOwned;
+                    const posterThumb = getPosterUrl(movie.poster_path);
+
+                    return (
+                      <MovieDialogCard
+                        key={`${section.key}-${movie.id}`}
+                        movie={movie}
+                        addState={addState}
+                        isAdding={isAdding}
+                        showSuccess={showSuccess}
+                        isCollectionLoading={isLoadingCollection}
+                        onAdd={handleAddToCollection}
+                        trigger={
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 rounded-md border hover:border-amber-500 px-3 py-2 text-left transition"
+                            aria-label={`View details of ${movie.title}`}
+                          >
+                            <div className="relative h-14 w-14 overflow-hidden rounded-md bg-muted">
+                              {posterThumb ? (
+                                <Image
+                                  src={posterThumb}
+                                  alt={`Póster de ${movie.title}`}
+                                  fill
+                                  sizes="3.5rem"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                  Sin póster
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium leading-tight">
+                                {movie.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatReleaseDate(movie.release_date)}
+                              </p>
+                            </div>
+                          </button>
+                        }
+                      />
+                    );
+                  })}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </section>
+  );
+}
+
+type MovieDialogCardProps = {
+  movie: MovieResult;
+  trigger: ReactNode;
+  addState?: AddState;
+  isAdding: boolean;
+  showSuccess: boolean;
+  isCollectionLoading: boolean;
+  onAdd: (movie: MovieResult) => void;
+};
+
+function MovieDialogCard({
+  movie,
+  trigger,
+  addState,
+  isAdding,
+  showSuccess,
+  isCollectionLoading,
+  onAdd,
+}: MovieDialogCardProps) {
+  const posterUrl = getPosterUrl(movie.poster_path);
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <div className="flex flex-col gap-6 sm:flex-row">
+          <div className="relative mx-auto aspect-[3/4] w-36 overflow-hidden rounded-lg bg-muted sm:mx-0 sm:w-48">
+            {posterUrl ? (
+              <Image
+                src={posterUrl}
+                alt={`Poster of ${movie.title}`}
+                fill
+                sizes="(min-width: 640px) 12rem, 10rem"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Poster not available
+              </div>
+            )}
+          </div>
+          <div className="flex-1 space-y-4">
+            <DialogHeader className="text-left">
+              <DialogTitle>{movie.title}</DialogTitle>
+              <DialogDescription>
+                {formatReleaseDate(movie.release_date)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 text-sm">
+              <p className="text-muted-foreground">
+                {movie.overview || "No synopsis available."}
+              </p>
+              <ul className="space-y-1 text-muted-foreground">
+                {movie.original_language && (
+                  <li>
+                    Original language: {movie.original_language.toUpperCase()}
+                  </li>
+                )}
+                {typeof movie.vote_average === "number" && (
+                  <li>
+                    TMDB rating: {movie.vote_average.toFixed(1)} ({
+                      movie.vote_count ?? 0
+                    } {movie.vote_count === 1 ? "vote" : "votes"})
+                  </li>
+                )}
+              </ul>
+            </div>
+            <div className="space-y-2 pt-2">
+              {showSuccess ? (
+                <p className="text-sm text-emerald-600">
+                  This movie is already in your collection.
+                </p>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => onAdd(movie)}
+                    disabled={isAdding || isCollectionLoading}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    {isAdding ? "Adding…" : "Add to my collection"}
+                  </Button>
+                  {addState?.status === "error" && addState.message && (
+                    <p className="text-sm text-destructive">{addState.message}</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
