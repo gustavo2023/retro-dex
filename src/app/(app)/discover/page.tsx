@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
 import { Search, Plus } from "lucide-react";
+import { toast } from "sonner";
 type MovieResult = {
   id: number;
   title: string;
@@ -86,6 +87,55 @@ export default function DiscoverPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [addStates, setAddStates] = useState<Record<number, AddState>>({});
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [ownedTmdbIds, setOwnedTmdbIds] = useState<Record<number, boolean>>({});
+  const [isLoadingCollection, setIsLoadingCollection] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUserAndCollection = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!isMounted) return;
+
+      const user = data?.user;
+      if (!user) {
+        setProfileId(null);
+        setOwnedTmdbIds({});
+        return;
+      }
+
+      setProfileId(user.id);
+      setIsLoadingCollection(true);
+      const { data: movies, error } = await supabase
+        .from("movies")
+        .select("tmdb_id")
+        .eq("profile_id", user.id);
+
+      if (error) {
+        console.error("Failed to load collection", error.message);
+        setOwnedTmdbIds({});
+      } else {
+        const mapped: Record<number, boolean> = {};
+        (movies ?? []).forEach((movieRow) => {
+          if (typeof movieRow.tmdb_id === "number") {
+            mapped[movieRow.tmdb_id] = true;
+          }
+        });
+        setOwnedTmdbIds(mapped);
+      }
+
+      if (isMounted) {
+        setIsLoadingCollection(false);
+      }
+    };
+
+    loadUserAndCollection();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -125,6 +175,17 @@ export default function DiscoverPage() {
   };
 
   const handleAddToCollection = async (movie: MovieResult) => {
+    if (ownedTmdbIds[movie.id]) {
+      setAddStates((prev) => ({
+        ...prev,
+        [movie.id]: {
+          status: "success",
+          message: "This movie is already in your collection.",
+        },
+      }));
+      return;
+    }
+
     setAddStates((prev) => ({ ...prev, [movie.id]: { status: "loading" } }));
 
     try {
@@ -136,13 +197,13 @@ export default function DiscoverPage() {
       }
 
       const { data: userData } = await supabase.auth.getUser();
-      const profileId = userData?.user?.id;
-      if (!profileId) {
+      const currentProfileId = userData?.user?.id;
+      if (!currentProfileId) {
         throw new Error("You must be logged in to add movies.");
       }
 
       const { error } = await supabase.from("movies").insert({
-        profile_id: profileId,
+        profile_id: currentProfileId,
         status: "wishlist",
         tmdb_id: movie.id,
         title: movie.title,
@@ -156,6 +217,8 @@ export default function DiscoverPage() {
       }
 
       setAddStates((prev) => ({ ...prev, [movie.id]: { status: "success" } }));
+      setOwnedTmdbIds((prev) => ({ ...prev, [movie.id]: true }));
+      toast.success(`${movie.title} added to your collection!`);
     } catch (err) {
       const message =
         err instanceof Error
@@ -222,6 +285,8 @@ export default function DiscoverPage() {
                 const addState = addStates[movie.id];
                 const isAdding = addState?.status === "loading";
                 const isAdded = addState?.status === "success";
+                const alreadyOwned = ownedTmdbIds[movie.id];
+                const showSuccess = isAdded || alreadyOwned;
 
                 return (
                   <Dialog key={movie.id}>
@@ -301,27 +366,27 @@ export default function DiscoverPage() {
                             </ul>
                           </div>
                           <div className="space-y-2 pt-2">
-                            <Button
-                              onClick={() => handleAddToCollection(movie)}
-                              disabled={isAdding || isAdded}
-                              className="w-full sm:w-auto"
-                            >
-                              <Plus className="size-4" aria-hidden="true" />
-                              {isAdded
-                                ? "Added to your wishlist"
-                                : isAdding
-                                ? "Adding..."
-                                : "Add to my collection"}
-                            </Button>
-                            {addState?.status === "error" && addState.message && (
-                              <p className="text-sm text-destructive">
-                                {addState.message}
-                              </p>
-                            )}
-                            {isAdded && (
+                            {showSuccess ? (
                               <p className="text-sm text-emerald-600">
-                                Ready! Check your collection.
+                                Esta película ya está en tu colección.
                               </p>
+                            ) : (
+                              <>
+                                <Button
+                                  onClick={() => handleAddToCollection(movie)}
+                                  disabled={isAdding || isLoadingCollection}
+                                  className="w-full sm:w-auto"
+                                >
+                                  <Plus className="size-4" aria-hidden="true" />
+                                  {isAdding ? "Adding..." : "Add to my collection"}
+                                </Button>
+                                {addState?.status === "error" &&
+                                  addState.message && (
+                                    <p className="text-sm text-destructive">
+                                      {addState.message}
+                                    </p>
+                                  )}
+                              </>
                             )}
                           </div>
                         </div>
