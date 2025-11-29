@@ -34,6 +34,11 @@ type MovieResult = {
   vote_count?: number;
 };
 
+type AddState = {
+  status: "idle" | "loading" | "success" | "error";
+  message?: string;
+};
+
 const getPosterUrl = (
   path?: string | null,
   size: "w500" | "w780" = "w500"
@@ -49,6 +54,13 @@ const formatReleaseDate = (date?: string) => {
     month: "long",
     day: "numeric",
   }).format(parsed);
+};
+
+const getReleaseYear = (date?: string) => {
+  if (!date) return null;
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.getFullYear();
 };
 
 const mockCollections = [
@@ -73,6 +85,7 @@ export default function DiscoverPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [addStates, setAddStates] = useState<Record<number, AddState>>({});
 
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -96,7 +109,7 @@ export default function DiscoverPage() {
 
       const payload = (data as { results?: MovieResult[] }) ?? {};
       const sortedResults = [...(payload.results ?? [])].sort(
-        (a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0)
+        (a, b) => (b.vote_count ?? 0) - (a.vote_count ?? 0)
       );
       setResults(sortedResults);
       setHasSearched(true);
@@ -108,6 +121,50 @@ export default function DiscoverPage() {
       );
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleAddToCollection = async (movie: MovieResult) => {
+    setAddStates((prev) => ({ ...prev, [movie.id]: { status: "loading" } }));
+
+    try {
+      const releaseYear = getReleaseYear(movie.release_date);
+      if (!releaseYear) {
+        throw new Error(
+          "Esta película no tiene una fecha de estreno válida."
+        );
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const profileId = userData?.user?.id;
+      if (!profileId) {
+        throw new Error("Debes iniciar sesión para agregar películas.");
+      }
+
+      const { error } = await supabase.from("movies").insert({
+        profile_id: profileId,
+        status: "wishlist",
+        tmdb_id: movie.id,
+        title: movie.title,
+        release_year: releaseYear,
+        synopsis: movie.overview ?? null,
+        tmdb_poster_path: movie.poster_path ?? null,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setAddStates((prev) => ({ ...prev, [movie.id]: { status: "success" } }));
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "No se pudo agregar la película.";
+      setAddStates((prev) => ({
+        ...prev,
+        [movie.id]: { status: "error", message },
+      }));
     }
   };
 
@@ -161,6 +218,9 @@ export default function DiscoverPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {results.map((movie) => {
                 const posterUrl = getPosterUrl(movie.poster_path);
+                const addState = addStates[movie.id];
+                const isAdding = addState?.status === "loading";
+                const isAdded = addState?.status === "success";
 
                 return (
                   <Dialog key={movie.id}>
@@ -238,6 +298,29 @@ export default function DiscoverPage() {
                                 </li>
                               )}
                             </ul>
+                          </div>
+                          <div className="space-y-2 pt-2">
+                            <Button
+                              onClick={() => handleAddToCollection(movie)}
+                              disabled={isAdding || isAdded}
+                              className="w-full sm:w-auto"
+                            >
+                              {isAdded
+                                ? "Añadida a tu wishlist"
+                                : isAdding
+                                ? "Agregando…"
+                                : "Agregar a mi colección"}
+                            </Button>
+                            {addState?.status === "error" && addState.message && (
+                              <p className="text-sm text-destructive">
+                                {addState.message}
+                              </p>
+                            )}
+                            {isAdded && (
+                              <p className="text-sm text-emerald-600">
+                                ¡Listo! Revisa tu colección.
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
