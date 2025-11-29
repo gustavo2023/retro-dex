@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# RetroDex
 
-First, run the development server:
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
+Vintage movie collecting, reimagined.
+
+[Live Demo](https://retro-dex.vercel.app/)
+
+</div>
+
+## Table of Contents
+
+1. [Project Description](#project-description)
+2. [Tech Stack](#tech-stack)
+3. [Installation](#installation)
+4. [Folder Structure](#folder-structure)
+5. [Environment & TMDB Usage](#environment--tmdb-usage)
+6. [Available Scripts](#available-scripts)
+7. [Developers](#developers)
+8. [License](#license)
+
+## Project Description
+
+RetroDex is a “Collectors Special Edition” web application that helps cinephiles catalog, track, and analyze their personal movie collections. Users can:
+
+- Discover movies securely via The Movie Database (TMDB) through Supabase Edge Functions.
+- Add TMDB titles to their private collection with a default `wishlist` status.
+- Manage custom metadata such as reviews, ratings, status, and estimated value stored in Supabase Postgres with Row Level Security.
+- Visualize collection data through dashboards and curated featured sections (Popular, Top Rated, Upcoming).
+
+## Tech Stack
+
+- **Framework**: Next.js (App Router) + TypeScript
+- **UI**: Tailwind CSS + shadcn/ui + Lucide icons
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- **State / Data**: Supabase clients (`@supabase/ssr` helpers)
+- **Notifications**: Sonner
+- **API**: TMDB (proxied through Supabase Edge Functions)
+
+## Installation
 
 ```bash
+git clone https://github.com/gustavo2023/retro-dex.git
+cd retro-dex
+npm install
+
+# copy env template and add credentials
+cp .env.example .env.local
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> The app runs on http://localhost:3000 by default.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Folder Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+retro-dex/
+├── public/
+├── src/
+│   ├── app/
+│   │   ├── (app)/
+│   │   │   ├── dashboard/
+│   │   │   ├── discover/
+│   │   │   ├── settings/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── (auth)/
+│   │   ├── auth/
+│   │   │   └── confirm/
+│   │   ├── error/
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   └── layout.tsx
+│   ├── components/
+│   │   └── ui/
+│   ├── hooks/
+│   ├── lib/
+│   ├── middleware.ts
+│   └── utils/
+│       └── supabase/
+├── supabase/
+│   ├── .temp/
+│   ├── config.toml
+│   └── functions/
+│       └── search-tmdb/
+├── README.md
+├── package.json
+└── next.config.ts
+```
 
-## Learn More
+## Environment & TMDB Usage
 
-To learn more about Next.js, take a look at the following resources:
+- All TMDB requests flow through the Supabase Edge Function `search-tmdb`, ensuring the TMDB API token never reaches the client.
+- Required environment variables (see `.env.example`):
+	- `NEXT_PUBLIC_SUPABASE_URL`
+	- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+	- `SUPABASE_SERVICE_ROLE_KEY`
+	- `TMDB_ACCESS_TOKEN`
+- The Edge Function supports the following endpoints via the `endpoint` body field: `search`, `popular`, `top_rated`, `upcoming`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Developers
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Gustavo Gutiérrez – [@gustavo2023](https://github.com/gustavo2023)
+- Jesús Rivas – [@rivas1731](https://github.com/rivas1731)
+- Adriano Robati – [@AdrianoR05](https://github.com/AdrianoR05)
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the [MIT License](LICENSE.md).
