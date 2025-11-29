@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
-
+import { Search, Plus } from "lucide-react";
 type MovieResult = {
   id: number;
   title: string;
@@ -45,9 +45,9 @@ const getPosterUrl = (
 ) => (path ? `https://image.tmdb.org/t/p/${size}${path}` : null);
 
 const formatReleaseDate = (date?: string) => {
-  if (!date) return "Sin fecha de estreno disponible";
+  if (!date) return "No release date available";
   const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return "Sin fecha de estreno disponible";
+  if (Number.isNaN(parsed.getTime())) return "No release date available";
 
   return new Intl.DateTimeFormat("es-MX", {
     year: "numeric",
@@ -131,14 +131,14 @@ export default function DiscoverPage() {
       const releaseYear = getReleaseYear(movie.release_date);
       if (!releaseYear) {
         throw new Error(
-          "Esta película no tiene una fecha de estreno válida."
+          "This movie lacks a valid release date and cannot be added."
         );
       }
 
       const { data: userData } = await supabase.auth.getUser();
       const profileId = userData?.user?.id;
       if (!profileId) {
-        throw new Error("Debes iniciar sesión para agregar películas.");
+        throw new Error("You must be logged in to add movies.");
       }
 
       const { error } = await supabase.from("movies").insert({
@@ -160,7 +160,7 @@ export default function DiscoverPage() {
       const message =
         err instanceof Error
           ? err.message
-          : "No se pudo agregar la película.";
+          : "Could not add the movie.";
       setAddStates((prev) => ({
         ...prev,
         [movie.id]: { status: "error", message },
@@ -185,11 +185,12 @@ export default function DiscoverPage() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Escribe un título, p. ej. Dune"
+              placeholder="Type a title, e.g. Dune"
               disabled={isSearching}
             />
             <Button type="submit" disabled={isSearching}>
-              {isSearching ? "Buscando…" : "Buscar"}
+              <Search className="size-4"/>
+              {isSearching ? "Searching…" : "Search"}
             </Button>
           </form>
         </CardHeader>
@@ -228,7 +229,7 @@ export default function DiscoverPage() {
                       <button
                         type="button"
                         className="group w-full text-left"
-                        aria-label={`Ver detalles de ${movie.title}`}
+                        aria-label={`View details of ${movie.title}`}
                       >
                         <Card className="border border-dashed !gap-0 !py-0 overflow-hidden transition hover:border-primary/50 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary">
                           <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
@@ -262,14 +263,14 @@ export default function DiscoverPage() {
                           {posterUrl ? (
                             <Image
                               src={posterUrl}
-                              alt={`Poster de ${movie.title}`}
+                              alt={`Poster of ${movie.title}`}
                               fill
                               sizes="(min-width: 640px) 12rem, 10rem"
                               className="object-cover"
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                              Sin póster disponible
+                              No poster available
                             </div>
                           )}
                         </div>
@@ -282,19 +283,19 @@ export default function DiscoverPage() {
                           </DialogHeader>
                           <div className="space-y-2 text-sm">
                             <p className="text-muted-foreground">
-                              {movie.overview || "No hay sinopsis disponible."}
+                              {movie.overview || "No synopsis available."}
                             </p>
                             <ul className="space-y-1 text-muted-foreground">
                               {movie.original_language && (
                                 <li>
-                                  Idioma original: {movie.original_language.toUpperCase()}
+                                  Original language: {movie.original_language.toUpperCase()}
                                 </li>
                               )}
                               {typeof movie.vote_average === "number" && (
                                 <li>
-                                  Valoración TMDB: {movie.vote_average.toFixed(1)} ({
+                                  TMDB rating: {movie.vote_average.toFixed(1)} ({
                                     movie.vote_count ?? 0
-                                  } {movie.vote_count === 1 ? "voto" : "votos"})
+                                  } {movie.vote_count === 1 ? "vote" : "votes"})
                                 </li>
                               )}
                             </ul>
@@ -305,11 +306,12 @@ export default function DiscoverPage() {
                               disabled={isAdding || isAdded}
                               className="w-full sm:w-auto"
                             >
+                              <Plus className="size-4" aria-hidden="true" />
                               {isAdded
-                                ? "Añadida a tu wishlist"
+                                ? "Added to your wishlist"
                                 : isAdding
-                                ? "Agregando…"
-                                : "Agregar a mi colección"}
+                                ? "Adding..."
+                                : "Add to my collection"}
                             </Button>
                             {addState?.status === "error" && addState.message && (
                               <p className="text-sm text-destructive">
@@ -318,7 +320,7 @@ export default function DiscoverPage() {
                             )}
                             {isAdded && (
                               <p className="text-sm text-emerald-600">
-                                ¡Listo! Revisa tu colección.
+                                Ready! Check your collection.
                               </p>
                             )}
                           </div>
