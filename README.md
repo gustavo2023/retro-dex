@@ -2,8 +2,6 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
----
-
 ## Live Demo
 
 [RetroDex](https://retro-dex.vercel.app/)
@@ -18,8 +16,6 @@
 6. [Developers](#developers)
 7. [License](#license)
 
----
-
 ## Project Description
 
 RetroDex is a “Collectors Special Edition” web application that helps cinephiles catalog, track, and analyze their personal movie collections. Users can:
@@ -28,8 +24,6 @@ RetroDex is a “Collectors Special Edition” web application that helps cineph
 - Add TMDB titles to their private collection with a default `wishlist` status.
 - Manage custom metadata such as reviews, ratings, status, and estimated value stored in Supabase Postgres with Row Level Security.
 - Visualize collection data through dashboards and curated featured sections (Popular, Top Rated, Upcoming).
-
----
 
 ## Tech Stack
 
@@ -93,8 +87,6 @@ retro-dex/
 └── next.config.ts
 ```
 
----
-
 ## Environment & TMDB Usage
 
 - All TMDB requests flow through the Supabase Edge Function `search-tmdb`, ensuring the TMDB API token never reaches the client.
@@ -108,8 +100,6 @@ retro-dex/
 - Gustavo Gutiérrez – [@gustavo2023](https://github.com/gustavo2023)
 - Jesús Rivas – [@rivas1731](https://github.com/rivas1731)
 - Adriano Robati – [@AdrianoR05](https://github.com/AdrianoR05)
-
----
 
 ## License
 
