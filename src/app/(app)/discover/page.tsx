@@ -14,7 +14,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -562,9 +561,9 @@ function MovieDialogCard({
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <div className="flex flex-col gap-6 sm:flex-row">
-          <div className="relative mx-auto aspect-3/4 w-36 overflow-hidden rounded-lg bg-muted sm:mx-0 sm:w-48">
+      <DialogContent className="max-w-4xl lg:max-w-5xl">
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="relative mx-auto aspect-3/4 w-44 overflow-hidden rounded-xl bg-muted sm:w-60 lg:mx-0 lg:w-72">
             {posterUrl ? (
               <Image
                 src={posterUrl}
@@ -579,46 +578,72 @@ function MovieDialogCard({
               </div>
             )}
           </div>
-          <div className="flex-1 space-y-4">
-            <DialogHeader className="text-left">
+          <div className="flex-1 space-y-5">
+            <DialogHeader className="space-y-2 text-left">
               <DialogTitle>{movie.title}</DialogTitle>
-              <DialogDescription>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  Release date:
+                </span>{" "}
                 {formatReleaseDate(movie.release_date)}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2 text-sm">
-              <p className="text-muted-foreground">
-                {movie.overview || "No synopsis available."}
               </p>
+            </DialogHeader>
+
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Synopsis
+                </p>
+                <p className="mt-1 leading-relaxed text-foreground">
+                  {movie.overview || "No synopsis available."}
+                </p>
+              </div>
+
               {genres.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {genres.map((genre) => (
-                    <Badge
-                      key={genre.id}
-                      variant="secondary"
-                      className="bg-muted text-muted-foreground"
-                    >
-                      {genre.name}
-                    </Badge>
-                  ))}
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Genres
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {genres.map((genre) => (
+                      <Badge
+                        key={genre.id}
+                        variant="secondary"
+                        className="bg-muted text-muted-foreground"
+                      >
+                        {genre.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
-              <ul className="space-y-1 text-muted-foreground">
+
+              <div className="flex flex-wrap gap-4 border-t border-border/60 pt-3 text-muted-foreground">
                 {movie.original_language && (
-                  <li>
-                    Original language: {movie.original_language.toUpperCase()}
-                  </li>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">
+                      Original language
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {movie.original_language.toUpperCase()}
+                    </p>
+                  </div>
                 )}
                 {typeof movie.vote_average === "number" && (
-                  <li>
-                    TMDB rating: {movie.vote_average.toFixed(1)} (
-                    {movie.vote_count ?? 0}{" "}
-                    {movie.vote_count === 1 ? "vote" : "votes"})
-                  </li>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide">
+                      TMDB rating
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {movie.vote_average.toFixed(1)} ({movie.vote_count ?? 0}{" "}
+                      {movie.vote_count === 1 ? "vote" : "votes"})
+                    </p>
+                  </div>
                 )}
-              </ul>
+              </div>
             </div>
-            <div className="space-y-2 pt-2">
+
+            <div className="space-y-2 pt-1">
               {showSuccess ? (
                 <p className="text-sm text-emerald-600">
                   This movie is already in your collection.

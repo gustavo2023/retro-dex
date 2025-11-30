@@ -27,7 +27,7 @@ export default async function HomePage() {
   let errorMessage: string | null = null;
 
   if (!user) {
-    errorMessage = "No pudimos validar tu sesión. Vuelve a iniciar sesión.";
+    errorMessage = "We could not identify your user account.";
   } else {
     const { data, error } = await supabase
       .from("movies")
@@ -120,21 +120,26 @@ export default async function HomePage() {
   return (
     <section className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metricCards.map(({ key, label, value, icon: Icon, borderClass, iconClass }) => (
-          <Card key={key} className={borderClass ? `border ${borderClass}` : undefined}>
-            <CardHeader className="flex items-start justify-between space-y-0 pb-0">
-              <CardDescription className="text-xl font-medium">
-                {label}
-              </CardDescription>
-              <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
-            </CardHeader>
-            <CardContent>
-              <CardTitle className="text-4xl font-semibold md:text-5xl">
-                {value}
-              </CardTitle>
-            </CardContent>
-          </Card>
-        ))}
+        {metricCards.map(
+          ({ key, label, value, icon: Icon, borderClass, iconClass }) => (
+            <Card
+              key={key}
+              className={borderClass ? `border ${borderClass}` : undefined}
+            >
+              <CardHeader className="flex items-start justify-between space-y-0 pb-0">
+                <CardDescription className="text-xl font-medium">
+                  {label}
+                </CardDescription>
+                <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <CardTitle className="text-3xl font-semibold md:text-4xl">
+                  {value}
+                </CardTitle>
+              </CardContent>
+            </Card>
+          )
+        )}
       </div>
 
       {errorMessage && (
@@ -151,15 +156,15 @@ export default async function HomePage() {
       {!hasMovies && !errorMessage && (
         <Card className="border-dashed">
           <CardHeader>
-            <CardTitle className="text-2xl">Tu colección está vacía</CardTitle>
+            <CardTitle className="text-2xl">Your collection is empty</CardTitle>
             <CardDescription>
-              Agrega tus primeras películas desde la sección de descubrimiento
-              para empezar a construir tu vitrina retro.
+              Add your first movies from the Explore section to start building
+              your retro showcase.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/discover">Explorar títulos</Link>
+              <Link href="/discover">Explore titles</Link>
             </Button>
           </CardContent>
         </Card>
