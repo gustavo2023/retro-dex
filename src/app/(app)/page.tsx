@@ -133,7 +133,7 @@ export default async function HomePage() {
                 <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <CardTitle className="text-4xl font-semibold md:text-5xl">
+                <CardTitle className="text-3xl font-semibold md:text-4xl">
                   {value}
                 </CardTitle>
               </CardContent>

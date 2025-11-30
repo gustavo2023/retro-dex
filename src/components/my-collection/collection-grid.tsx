@@ -519,8 +519,8 @@ function MovieEditDialog({
               </CardContent>
             </>
           ) : (
-            <CardContent className="flex w-full gap-5 p-5">
-              <div className="relative h-44 w-32 shrink-0 overflow-hidden rounded-2xl bg-muted">
+            <CardContent className="flex w-full gap-5 px-5 py-0">
+              <div className="relative h-56 w-40 shrink-0 overflow-hidden rounded-2xl bg-muted">
                 {posterUrlForCard ? (
                   <Image
                     src={posterUrlForCard}
