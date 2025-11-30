@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Star, UploadCloud, ImageIcon, LayoutGrid, List } from "lucide-react";
+import { Star, UploadCloud, ImageIcon, LayoutGrid, List, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -68,6 +79,10 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
     setMovies((prev) =>
       prev.map((movie) => (movie.id === updated.id ? updated : movie))
     );
+  };
+
+  const handleMovieDeleted = (deletedId: string) => {
+    setMovies((prev) => prev.filter((movie) => movie.id !== deletedId));
   };
 
   if (!movies.length) {
@@ -117,6 +132,7 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
             key={movie.id}
             movie={movie}
             onMovieUpdated={handleMovieUpdated}
+            onMovieDeleted={handleMovieDeleted}
             layout={effectiveLayout}
           />
         ))}
@@ -128,10 +144,11 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
 type MovieEditDialogProps = {
   movie: CollectionMovie;
   onMovieUpdated: (movie: CollectionMovie) => void;
+  onMovieDeleted: (id: string) => void;
   layout: "grid" | "list";
 };
 
-function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps) {
+function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: MovieEditDialogProps) {
   const supabase = useMemo(() => createClient(), []);
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<MovieStatus>(movie.status);
@@ -146,6 +163,8 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
   );
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
 
@@ -177,9 +196,12 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
     setIsOpen(nextOpen);
     if (nextOpen) {
       resetFormState();
-    } else if (previewObjectUrl) {
-      URL.revokeObjectURL(previewObjectUrl);
-      setPreviewObjectUrl(null);
+    } else {
+      if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl);
+        setPreviewObjectUrl(null);
+      }
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -223,6 +245,7 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isDeleting) return;
     setIsSaving(true);
     setError(null);
 
@@ -318,6 +341,44 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
       toast.error(message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isSaving || isDeleting) return;
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be signed in to delete movies.");
+      }
+
+      const { error: deleteError } = await supabase
+        .from("movies")
+        .delete()
+        .eq("id", movie.id);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      onMovieDeleted(movie.id);
+      toast.success(`${movie.title} was removed from your collection.`);
+      setIsDeleteDialogOpen(false);
+      handleOpenChange(false);
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "We couldn't delete this movie.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -625,25 +686,69 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <DialogFooter>
+          <DialogFooter className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
+              disabled={isSaving || isDeleting}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <span className="flex items-center gap-2">
-                  <Spinner className="size-4" /> Saving
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <UploadCloud className="size-4" /> Save changes
-                </span>
-              )}
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <AlertDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isSaving || isDeleting}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="size-4" /> Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove this movie?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{movie.title}" from your collection.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>
+                      Keep movie
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? (
+                        <span className="flex items-center gap-2">
+                          <Spinner className="size-4" /> Deleting
+                        </span>
+                      ) : (
+                        "Delete"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button type="submit" disabled={isSaving || isDeleting}>
+                {isSaving ? (
+                  <span className="flex items-center gap-2">
+                    <Spinner className="size-4" /> Saving
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <UploadCloud className="size-4" /> Save changes
+                  </span>
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
