@@ -73,21 +73,33 @@ const STATUS_HOVER_BORDER: Record<MovieStatus, string> = {
 
 type CollectionGridProps = {
   initialMovies: CollectionMovie[];
+  onMovieUpdated?: (movie: CollectionMovie) => void;
+  onMovieDeleted?: (id: string) => void;
 };
 
-export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
+export default function CollectionGrid({
+  initialMovies,
+  onMovieUpdated,
+  onMovieDeleted,
+}: CollectionGridProps) {
   const [movies, setMovies] = useState(initialMovies);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setMovies(initialMovies);
+  }, [initialMovies]);
 
   const handleMovieUpdated = (updated: CollectionMovie) => {
     setMovies((prev) =>
       prev.map((movie) => (movie.id === updated.id ? updated : movie))
     );
+    onMovieUpdated?.(updated);
   };
 
   const handleMovieDeleted = (deletedId: string) => {
     setMovies((prev) => prev.filter((movie) => movie.id !== deletedId));
+    onMovieDeleted?.(deletedId);
   };
 
   if (!movies.length) {
