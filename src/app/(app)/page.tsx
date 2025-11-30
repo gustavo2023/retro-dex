@@ -1,65 +1,171 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { createClient } from "@/utils/supabase/server";
+import CollectionGrid from "@/components/my-collection/collection-grid";
+import { Clapperboard, Sparkles, ShoppingBag, Film } from "lucide-react";
+import {
+  type CollectionMovie,
+  type MovieStatus,
+  MOVIE_SELECT_FIELDS,
+} from "@/lib/movies";
+
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let movies: CollectionMovie[] = [];
+  let errorMessage: string | null = null;
+
+  if (!user) {
+    errorMessage = "No pudimos validar tu sesión. Vuelve a iniciar sesión.";
+  } else {
+    const { data, error } = await supabase
+      .from("movies")
+      .select(MOVIE_SELECT_FIELDS)
+      .eq("profile_id", user.id)
+      .order("title", { ascending: true });
+
+    if (error) {
+      errorMessage = error.message;
+    } else {
+      movies = (data ?? []) as unknown as CollectionMovie[];
+    }
+  }
+
+  const summary = movies.reduce(
+    (acc, movie) => {
+      acc.total += 1;
+      acc.statusCounts[movie.status] += 1;
+
+      const watchedDate = movie.watched_at ? new Date(movie.watched_at) : null;
+      if (
+        watchedDate &&
+        !Number.isNaN(watchedDate.getTime()) &&
+        watchedDate.getFullYear() === new Date().getFullYear()
+      ) {
+        acc.watchedThisYear += 1;
+      }
+
+      const parsedValue =
+        typeof movie.estimated_price === "number"
+          ? movie.estimated_price
+          : movie.estimated_price
+          ? Number(movie.estimated_price)
+          : 0;
+      if (!Number.isNaN(parsedValue)) {
+        acc.totalValue += parsedValue;
+      }
+
+      return acc;
+    },
+    {
+      total: 0,
+      watchedThisYear: 0,
+      totalValue: 0,
+      statusCounts: {
+        wishlist: 0,
+        owned: 0,
+        watched: 0,
+      } as Record<MovieStatus, number>,
+    }
+  );
+
+  const hasMovies = movies.length > 0;
+
+  const metricCards = [
+    {
+      key: "total",
+      label: "Total Movies",
+      value: summary.total,
+      icon: Clapperboard,
+      borderClass: "",
+      iconClass: "text-foreground",
+    },
+    {
+      key: "wishlist",
+      label: "Wishlist",
+      value: summary.statusCounts.wishlist,
+      icon: Sparkles,
+      borderClass: "border-amber-300",
+      iconClass: "text-amber-500",
+    },
+    {
+      key: "owned",
+      label: "Owned",
+      value: summary.statusCounts.owned,
+      icon: ShoppingBag,
+      borderClass: "border-emerald-300",
+      iconClass: "text-emerald-500",
+    },
+    {
+      key: "watched",
+      label: "Watched",
+      value: summary.statusCounts.watched,
+      icon: Film,
+      borderClass: "border-sky-300",
+      iconClass: "text-sky-500",
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <section className="space-y-8">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {metricCards.map(({ key, label, value, icon: Icon, borderClass, iconClass }) => (
+          <Card key={key} className={borderClass ? `border ${borderClass}` : undefined}>
+            <CardHeader className="flex items-start justify-between space-y-0 pb-0">
+              <CardDescription className="text-xl font-medium">
+                {label}
+              </CardDescription>
+              <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-4xl font-semibold md:text-5xl">
+                {value}
+              </CardTitle>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {errorMessage && (
+        <Card className="border-red-200 bg-red-50 text-red-700">
+          <CardHeader>
+            <CardTitle>We could not load your collection</CardTitle>
+            <CardDescription className="text-red-600">
+              {errorMessage}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {!hasMovies && !errorMessage && (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="text-2xl">Tu colección está vacía</CardTitle>
+            <CardDescription>
+              Agrega tus primeras películas desde la sección de descubrimiento
+              para empezar a construir tu vitrina retro.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/discover">Explorar títulos</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasMovies && <CollectionGrid initialMovies={movies} />}
+    </section>
   );
 }
