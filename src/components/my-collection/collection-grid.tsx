@@ -3,10 +3,10 @@
 import { useMemo, useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Star, UploadCloud, ImageIcon } from "lucide-react";
+import { Star, UploadCloud, ImageIcon, LayoutGrid, List } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/utils/supabase/client";
 import {
   STATUS_LABEL,
@@ -43,6 +44,11 @@ const STAR_VALUES = [1, 2, 3, 4, 5];
 const STORAGE_BUCKET = "movie-posters";
 const MAX_POSTER_SIZE = 5 * 1024 * 1024; // 5MB
 const STORAGE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const STATUS_HOVER_BORDER: Record<MovieStatus, string> = {
+  wishlist: "hover:border-amber-500",
+  owned: "hover:border-emerald-500",
+  watched: "hover:border-sky-500",
+};
 
 type CollectionGridProps = {
   initialMovies: CollectionMovie[];
@@ -50,6 +56,14 @@ type CollectionGridProps = {
 
 export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
   const [movies, setMovies] = useState(initialMovies);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (isMobile && viewMode !== "list") {
+      setViewMode("list");
+    }
+  }, [isMobile, viewMode]);
 
   const handleMovieUpdated = (updated: CollectionMovie) => {
     setMovies((prev) =>
@@ -61,15 +75,53 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
     return null;
   }
 
+  const effectiveLayout = isMobile ? "list" : viewMode;
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      {movies.map((movie) => (
-        <MovieEditDialog
-          key={movie.id}
-          movie={movie}
-          onMovieUpdated={handleMovieUpdated}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-end gap-2">
+        {!isMobile && (
+          <Button
+            type="button"
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            aria-pressed={viewMode === "grid"}
+            aria-label="Grid view"
+            title="Grid view"
+          >
+            <LayoutGrid className="size-4" />
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant={effectiveLayout === "list" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewMode("list")}
+          aria-pressed={effectiveLayout === "list"}
+          aria-label="List view"
+          title="List view"
+        >
+          <List className="size-4" />
+        </Button>
+      </div>
+
+      <div
+        className={
+          effectiveLayout === "grid"
+            ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            : "flex flex-col gap-4"
+        }
+      >
+        {movies.map((movie) => (
+          <MovieEditDialog
+            key={movie.id}
+            movie={movie}
+            onMovieUpdated={handleMovieUpdated}
+            layout={effectiveLayout}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -77,9 +129,10 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
 type MovieEditDialogProps = {
   movie: CollectionMovie;
   onMovieUpdated: (movie: CollectionMovie) => void;
+  layout: "grid" | "list";
 };
 
-function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
+function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps) {
   const supabase = useMemo(() => createClient(), []);
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<MovieStatus>(movie.status);
@@ -240,73 +293,146 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
   const posterUrlForCard = getPosterUrl(movie);
   const genres = getGenresLabel(movie);
   const watchedDate = formatDate(movie.watched_at);
-  const ratingLabel = movie.rating ? `${movie.rating}/5` : null;
+  const ratingValue = movie.rating ?? 0;
   const detailedGenres = genres ?? "No data";
   const synopsisText = movie.synopsis ?? "No synopsis available.";
   const releaseYear = movie.release_year ? String(movie.release_year) : "?";
 
+  const isGridLayout = layout === "grid";
+  const titleClass = isGridLayout ? "text-base" : "text-2xl";
+  const metaTextClass = isGridLayout ? "text-xs" : "text-base";
+  const synopsisClass = isGridLayout ? "text-sm" : "text-base";
+  const detailsClass = isGridLayout ? "text-xs" : "text-sm";
+  const badge = (
+    <span
+      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${STATUS_STYLES[movie.status]}`}
+    >
+      {STATUS_LABEL[movie.status]}
+    </span>
+  );
+  const metaLabel =
+    [movie.release_year, genres].filter(Boolean).join(" • ") || "No details";
+  const hoverBorderClass = STATUS_HOVER_BORDER[movie.status];
+  const renderStaticStars = (sizeClass = "size-4", wrapperClassName = "") => (
+    <div
+      className={`flex gap-0.5 text-amber-500 ${wrapperClassName}`}
+      aria-label={
+        ratingValue > 0 ? `${ratingValue} out of 5 stars` : "No rating yet"
+      }
+    >
+      {STAR_VALUES.map((value) => (
+        <Star
+          key={`readonly-${movie.id}-${value}-${sizeClass}`}
+          className={`${sizeClass} ${
+            value <= ratingValue
+              ? "fill-current"
+              : "stroke-current text-muted-foreground"
+          }`}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <button type="button" className="w-full text-left">
-          <Card className="overflow-hidden transition hover:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-            <CardContent className="flex gap-4 p-4">
-              <div className="relative h-40 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
-                {posterUrlForCard ? (
-                  <Image
-                    src={posterUrlForCard}
-                    alt={`Poster for ${movie.title}`}
-                    fill
-                    sizes="(min-width: 1024px) 12vw, 30vw"
-                    className="object-cover"
-                    priority={false}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                    No poster
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-1 flex-col gap-3">
-                <div>
+        <button type="button" className="group w-full text-left">
+          <Card
+            className={`overflow-hidden transition ${hoverBorderClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
+              isGridLayout
+                ? "flex h-full flex-col border !gap-0 !py-0 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary"
+                : "flex border"
+            }`}
+          >
+            {isGridLayout ? (
+              <>
+                <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+                  {posterUrlForCard ? (
+                    <Image
+                      src={posterUrlForCard}
+                      alt={`Poster for ${movie.title}`}
+                      fill
+                      sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 24vw, 60vw"
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                      priority={false}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                      No poster
+                    </div>
+                  )}
+                </div>
+                <CardContent className="space-y-2 px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <CardTitle className="text-xl leading-tight">
+                      <CardTitle className={`${titleClass} leading-tight`}>
                         {movie.title}
                       </CardTitle>
-                      {movie.release_year && (
-                        <p className="text-sm text-muted-foreground">
-                          {movie.release_year}
-                        </p>
-                      )}
+                      <CardDescription className={`${metaTextClass} text-muted-foreground`}>
+                        {metaLabel}
+                      </CardDescription>
                     </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[movie.status]}`}
-                    >
-                      {STATUS_LABEL[movie.status]}
-                    </span>
+                    {renderStaticStars("size-4")}
                   </div>
-                  {genres && (
-                    <p className="text-xs text-muted-foreground">{genres}</p>
+                  <div className="flex justify-end">
+                    {badge}
+                  </div>
+                </CardContent>
+              </>
+            ) : (
+              <CardContent className="flex w-full gap-5 p-5">
+                <div className="relative h-44 w-32 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                  {posterUrlForCard ? (
+                    <Image
+                      src={posterUrlForCard}
+                      alt={`Poster for ${movie.title}`}
+                      fill
+                      sizes="(min-width: 1280px) 12vw, 40vw"
+                      className="object-cover"
+                      priority={false}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                      No poster
+                    </div>
                   )}
                 </div>
-
-                {movie.synopsis && (
-                  <p className="line-clamp-3 text-sm text-muted-foreground">
-                    {movie.synopsis}
-                  </p>
-                )}
-
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  {ratingLabel && <span>Rating: {ratingLabel}</span>}
-                  {watchedDate && <span>Watched: {watchedDate}</span>}
-                  {movie.estimated_price && (
-                    <span>Value: {formatCurrency(movie.estimated_price)}</span>
+                <div className="flex flex-1 flex-col gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className={`${titleClass} leading-tight`}>
+                        {movie.title}
+                      </CardTitle>
+                      <CardDescription className={`${metaTextClass} text-muted-foreground`}>
+                        {metaLabel}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      {badge}
+                    </div>
+                  </div>
+                  {movie.synopsis && (
+                    <CardDescription className={`${synopsisClass} text-muted-foreground line-clamp-4`}>
+                      {movie.synopsis}
+                    </CardDescription>
                   )}
+                  <div className={`flex flex-wrap gap-6 ${detailsClass} text-muted-foreground`}>
+                    {ratingValue > 0 ? (
+                      <div className="flex items-center">
+                        {renderStaticStars("size-4")}
+                      </div>
+                    ) : (
+                      <span>No rating yet</span>
+                    )}
+                    {watchedDate && <span>Watched: {watchedDate}</span>}
+                    {movie.estimated_price && (
+                      <span>Value: {formatCurrency(movie.estimated_price)}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         </button>
       </DialogTrigger>
@@ -349,7 +475,7 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
                   <ImageIcon className="size-6" />
-                  Sin poster
+                  No poster
                 </div>
               )}
             </div>
