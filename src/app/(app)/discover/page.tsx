@@ -628,7 +628,7 @@ function MovieDialogCard({
                   <Button
                     onClick={() => onAdd(movie)}
                     disabled={isAdding || isCollectionLoading}
-                    className="w-full sm:w-auto"
+                    className="w-full cursor-pointer sm:w-auto"
                   >
                     <Plus className="size-4" aria-hidden="true" />
                     {isAdding ? "Adding…" : "Add to my collection"}

@@ -1,12 +1,30 @@
 "use client";
 
-import { useMemo, useState, useEffect, type ChangeEvent, type FormEvent } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Star, UploadCloud, ImageIcon, LayoutGrid, List, Trash2 } from "lucide-react";
+import {
+  Star,
+  UploadCloud,
+  ImageIcon,
+  LayoutGrid,
+  List,
+  Trash2,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -68,12 +86,6 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
   const [movies, setMovies] = useState(initialMovies);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (isMobile && viewMode !== "list") {
-      setViewMode("list");
-    }
-  }, [isMobile, viewMode]);
 
   const handleMovieUpdated = (updated: CollectionMovie) => {
     setMovies((prev) =>
@@ -148,7 +160,12 @@ type MovieEditDialogProps = {
   layout: "grid" | "list";
 };
 
-function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: MovieEditDialogProps) {
+function MovieEditDialog({
+  movie,
+  onMovieUpdated,
+  onMovieDeleted,
+  layout,
+}: MovieEditDialogProps) {
   const supabase = useMemo(() => createClient(), []);
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<MovieStatus>(movie.status);
@@ -397,7 +414,9 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
   const detailsClass = isGridLayout ? "text-xs" : "text-sm";
   const badge = (
     <span
-      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${STATUS_STYLES[movie.status]}`}
+      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+        STATUS_STYLES[movie.status]
+      }`}
     >
       {STATUS_LABEL[movie.status]}
     </span>
@@ -442,13 +461,13 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
         <Card
           className={`overflow-hidden transition ${hoverBorderClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
             isGridLayout
-              ? "flex h-full flex-col border !gap-0 !py-0 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary"
+              ? "flex h-full flex-col border gap-0! py-0! group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary"
               : "flex border"
           }`}
         >
           {isGridLayout ? (
             <>
-              <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+              <div className="relative aspect-3/4 w-full overflow-hidden bg-muted">
                 {posterUrlForCard ? (
                   <Image
                     src={posterUrlForCard}
@@ -470,15 +489,15 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
                     <CardTitle className={`${titleClass} leading-tight`}>
                       {movie.title}
                     </CardTitle>
-                    <CardDescription className={`${metaTextClass} text-muted-foreground`}>
+                    <CardDescription
+                      className={`${metaTextClass} text-muted-foreground`}
+                    >
                       {metaLabel}
                     </CardDescription>
                   </div>
                   {renderStaticStars("size-4")}
                 </div>
-                <div className="flex justify-end">
-                  {badge}
-                </div>
+                <div className="flex justify-end">{badge}</div>
               </CardContent>
             </>
           ) : (
@@ -505,20 +524,24 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
                     <CardTitle className={`${titleClass} leading-tight`}>
                       {movie.title}
                     </CardTitle>
-                    <CardDescription className={`${metaTextClass} text-muted-foreground`}>
+                    <CardDescription
+                      className={`${metaTextClass} text-muted-foreground`}
+                    >
                       {metaLabel}
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {badge}
-                  </div>
+                  <div className="flex flex-col items-end gap-2">{badge}</div>
                 </div>
                 {movie.synopsis && (
-                  <CardDescription className={`${synopsisClass} text-muted-foreground line-clamp-4`}>
+                  <CardDescription
+                    className={`${synopsisClass} text-muted-foreground line-clamp-4`}
+                  >
                     {movie.synopsis}
                   </CardDescription>
                 )}
-                <div className={`flex flex-wrap gap-6 ${detailsClass} text-muted-foreground`}>
+                <div
+                  className={`flex flex-wrap gap-6 ${detailsClass} text-muted-foreground`}
+                >
                   {ratingValue > 0 ? (
                     <div className="flex items-center">
                       {renderStaticStars("size-4")}
@@ -542,24 +565,33 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
         className="max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
-          <DialogTitle>Edit "{movie.title}"</DialogTitle>
+          <DialogTitle>Edit &quot;{movie.title}&quot;</DialogTitle>
           <DialogDescription>
-            Update your personal review, status, rating, or upload your own poster.
+            Update your personal review, status, rating, or upload your own
+            poster.
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 rounded-2xl border border-border/60 bg-muted/20 p-4 text-sm space-y-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Synopsis</p>
-            <p className="mt-1 leading-relaxed text-foreground/90">{synopsisText}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Synopsis
+            </p>
+            <p className="mt-1 leading-relaxed text-foreground/90">
+              {synopsisText}
+            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 text-sm">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Release year</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Release year
+              </p>
               <p className="mt-1 font-medium">{releaseYear}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Genres</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Genres
+              </p>
               <p className="mt-1 font-medium">{detailedGenres}</p>
             </div>
           </div>
@@ -633,7 +665,8 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
                 <p className="text-xs text-red-500">{priceError}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  We'll store this as the estimated value for your collection stats.
+                  We&apos;ll store this as the estimated value for your
+                  collection stats.
                 </p>
               )}
             </div>
@@ -690,6 +723,7 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
             <Button
               type="button"
               variant="outline"
+              className="cursor-pointer"
               onClick={() => handleOpenChange(false)}
               disabled={isSaving || isDeleting}
             >
@@ -705,7 +739,7 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
                     type="button"
                     variant="destructive"
                     disabled={isSaving || isDeleting}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
                     <Trash2 className="size-4" /> Delete
                   </Button>
@@ -714,7 +748,8 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remove this movie?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete "{movie.title}" from your collection.
+                      This will permanently delete &quot;{movie.title}&quot;
+                      from your collection.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -737,7 +772,11 @@ function MovieEditDialog({ movie, onMovieUpdated, onMovieDeleted, layout }: Movi
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Button type="submit" disabled={isSaving || isDeleting}>
+              <Button
+                type="submit"
+                className="cursor-pointer"
+                disabled={isSaving || isDeleting}
+              >
                 {isSaving ? (
                   <span className="flex items-center gap-2">
                     <Spinner className="size-4" /> Saving
