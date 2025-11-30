@@ -30,14 +30,16 @@ const buildUrl = (
   endpoint: string,
   page: number,
   language: string,
-  query?: string,
+  query?: string
 ) => {
   switch (endpoint) {
     case "search":
       if (!query) {
         throw new Error("Query is required for search");
       }
-      return `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=${language}&page=${page}`;
+      return `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(
+        query
+      )}&include_adult=false&language=${language}&page=${page}`;
     case "popular":
       return `${TMDB_BASE_URL}/movie/popular?language=${language}&page=${page}`;
     case "top_rated":
@@ -70,7 +72,7 @@ async function fetchJson<T>(url: string, tmdbToken: string) {
 async function fetchGenreMap(tmdbToken: string, language: string) {
   const genreData = await fetchJson<GenreListResponse>(
     `${TMDB_BASE_URL}/genre/movie/list?language=${language}`,
-    tmdbToken,
+    tmdbToken
   );
   const map = new Map<number, string>();
   for (const genre of genreData.genres ?? []) {
@@ -81,7 +83,7 @@ async function fetchGenreMap(tmdbToken: string, language: string) {
 
 function enrichWithGenres(
   payload: MovieListResponse,
-  genreMap: Map<number, string> | null,
+  genreMap: Map<number, string> | null
 ) {
   if (!genreMap || !payload.results) return payload;
 
@@ -91,7 +93,7 @@ function enrichWithGenres(
       .map((genreId) =>
         genreMap.has(genreId)
           ? { id: genreId, name: genreMap.get(genreId)! }
-          : null,
+          : null
       )
       .filter(Boolean) as { id: number; name: string }[],
   }));
@@ -124,7 +126,7 @@ serve(async (req) => {
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        }
       );
     }
 
@@ -166,7 +168,7 @@ serve(async (req) => {
 
       responsePayload = await fetchJson(
         `${TMDB_BASE_URL}/movie/${tmdbId}?language=${language}`,
-        tmdbToken,
+        tmdbToken
       );
     } else {
       const url = buildUrl(endpoint, normalizedPage, language, query);
