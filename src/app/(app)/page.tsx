@@ -120,21 +120,26 @@ export default async function HomePage() {
   return (
     <section className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metricCards.map(({ key, label, value, icon: Icon, borderClass, iconClass }) => (
-          <Card key={key} className={borderClass ? `border ${borderClass}` : undefined}>
-            <CardHeader className="flex items-start justify-between space-y-0 pb-0">
-              <CardDescription className="text-xl font-medium">
-                {label}
-              </CardDescription>
-              <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
-            </CardHeader>
-            <CardContent>
-              <CardTitle className="text-4xl font-semibold md:text-5xl">
-                {value}
-              </CardTitle>
-            </CardContent>
-          </Card>
-        ))}
+        {metricCards.map(
+          ({ key, label, value, icon: Icon, borderClass, iconClass }) => (
+            <Card
+              key={key}
+              className={borderClass ? `border ${borderClass}` : undefined}
+            >
+              <CardHeader className="flex items-start justify-between space-y-0 pb-0">
+                <CardDescription className="text-xl font-medium">
+                  {label}
+                </CardDescription>
+                <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
+              </CardHeader>
+              <CardContent>
+                <CardTitle className="text-4xl font-semibold md:text-5xl">
+                  {value}
+                </CardTitle>
+              </CardContent>
+            </Card>
+          )
+        )}
       </div>
 
       {errorMessage && (
@@ -153,8 +158,8 @@ export default async function HomePage() {
           <CardHeader>
             <CardTitle className="text-2xl">Your collection is empty</CardTitle>
             <CardDescription>
-              Add your first movies from the Explore section
-              to start building your retro showcase.
+              Add your first movies from the Explore section to start building
+              your retro showcase.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -9,14 +9,7 @@ import {
 } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-  Star,
-  UploadCloud,
-  ImageIcon,
-  LayoutGrid,
-  List,
-  Trash2,
-} from "lucide-react";
+import { Star, UploadCloud, LayoutGrid, List, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +55,6 @@ import {
   STATUS_STYLES,
   formatCurrency,
   formatDate,
-  getGenresLabel,
   getPosterUrl,
   type CollectionMovie,
   type MovieStatus,
@@ -102,12 +94,12 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
     return null;
   }
 
-  const effectiveLayout = isMobile ? "list" : viewMode;
+  const effectiveLayout = isMobile ? "grid" : viewMode;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        {!isMobile && (
+      {!isMobile && (
+        <div className="flex items-center justify-end gap-2">
           <Button
             type="button"
             variant={viewMode === "grid" ? "default" : "outline"}
@@ -119,24 +111,24 @@ export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
           >
             <LayoutGrid className="size-4" />
           </Button>
-        )}
-        <Button
-          type="button"
-          variant={effectiveLayout === "list" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setViewMode("list")}
-          aria-pressed={effectiveLayout === "list"}
-          aria-label="List view"
-          title="List view"
-        >
-          <List className="size-4" />
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            aria-pressed={viewMode === "list"}
+            aria-label="List view"
+            title="List view"
+          >
+            <List className="size-4" />
+          </Button>
+        </div>
+      )}
 
       <div
         className={
           effectiveLayout === "grid"
-            ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
             : "flex flex-col gap-4"
         }
       >
@@ -401,10 +393,8 @@ function MovieEditDialog({
   };
 
   const posterUrlForCard = getPosterUrl(movie);
-  const genres = getGenresLabel(movie);
   const watchedDate = formatDate(movie.watched_at);
   const ratingValue = movie.rating ?? 0;
-  const detailedGenres = genres ?? "No data";
   const synopsisText = movie.synopsis ?? "No synopsis available.";
   const releaseYear = movie.release_year
     ? String(movie.release_year)
@@ -456,6 +446,7 @@ function MovieEditDialog({
   );
 
   const dialogContentId = useMemo(() => `movie-dialog-${movie.id}`, [movie.id]);
+  const displayPoster = posterPreview ?? posterUrlForCard;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -605,67 +596,72 @@ function MovieEditDialog({
         className="max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
-          <DialogTitle>Edit &quot;{movie.title}&quot;</DialogTitle>
+          <DialogTitle>{movie.title}</DialogTitle>
           <DialogDescription>
             Update your personal review, status, rating, or upload your own
             poster.
           </DialogDescription>
+          <div className="pt-2 text-sm">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Release year
+            </p>
+            <p className="mt-1 text-lg font-semibold text-foreground">
+              {releaseYear}
+            </p>
+          </div>
         </DialogHeader>
 
-        <div className="mt-4 rounded-2xl border border-border/60 bg-muted/20 p-4 text-sm space-y-4">
-          <div>
+        <div className="mt-6 flex justify-center">
+          <div className="relative mx-auto aspect-3/4 w-48 overflow-hidden rounded-2xl bg-muted sm:w-60 lg:mx-0 lg:w-72">
+            {displayPoster ? (
+              <Image
+                src={displayPoster}
+                alt={`Poster for ${movie.title}`}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No poster
+              </div>
+            )}
+          </div>
+        </div>
+
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit} noValidate>
+          <div className="space-y-2">
+            <Label htmlFor={`poster-${movie.id}`}>Custom poster</Label>
+            <Input
+              id={`poster-${movie.id}`}
+              type="file"
+              accept="image/*"
+              onChange={handlePosterChange}
+            />
+            <p className="text-xs text-muted-foreground">
+              PNG or JPG files up to 5MB.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-sm">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Synopsis
             </p>
             <p className="mt-1 leading-relaxed text-foreground/90">
               {synopsisText}
             </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Release year
-              </p>
-              <p className="mt-1 font-medium">{releaseYear}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Genres
-              </p>
-              <p className="mt-1 font-medium">{detailedGenres}</p>
-            </div>
-          </div>
-        </div>
-
-        <form className="mt-6 space-y-6" onSubmit={handleSubmit} noValidate>
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="relative h-48 w-full max-w-[180px] overflow-hidden rounded-xl bg-muted">
-              {posterPreview ? (
-                <Image
-                  src={posterPreview}
-                  alt={`Poster preview for ${movie.title}`}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <ImageIcon className="size-6" />
-                  No poster
-                </div>
-              )}
-            </div>
-            <div className="flex-1 space-y-2">
-              <Label htmlFor={`poster-${movie.id}`}>Custom poster</Label>
-              <Input
-                id={`poster-${movie.id}`}
-                type="file"
-                accept="image/*"
-                onChange={handlePosterChange}
-              />
-              <p className="text-xs text-muted-foreground">
-                PNG or JPG files up to 5MB.
-              </p>
-            </div>
+            {genreNames.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {genreNames.map((name, index) => (
+                  <Badge
+                    key={`synopsis-genre-${movie.id}-${name}-${index}`}
+                    variant="secondary"
+                    className="bg-muted text-muted-foreground"
+                  >
+                    {name}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
