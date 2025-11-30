@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -10,75 +9,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/server";
-
-type MovieStatus = "wishlist" | "owned" | "watched";
-
-type CollectionMovie = {
-  id: string;
-  title: string;
-  release_year: number | null;
-  status: MovieStatus;
-  rating: number | null;
-  synopsis: string | null;
-  genres: Array<{ name?: string } | string> | null;
-  tmdb_poster_path: string | null;
-  user_poster_url: string | null;
-  estimated_price: number | string | null;
-  watched_at: string | null;
-};
-
-const STATUS_LABEL: Record<MovieStatus, string> = {
-  wishlist: "Wishlist",
-  owned: "Owned",
-  watched: "Watched",
-};
-
-const STATUS_STYLES: Record<MovieStatus, string> = {
-  wishlist: "bg-amber-50 text-amber-600 border border-amber-200",
-  owned: "bg-emerald-50 text-emerald-600 border border-emerald-200",
-  watched: "bg-sky-50 text-sky-600 border border-sky-200",
-};
-
-const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
-
-const formatCurrency = (value: number) =>
-  value > 0
-    ? new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0,
-      }).format(value)
-    : "—";
-
-const getPosterUrl = (movie: CollectionMovie) =>
-  movie.user_poster_url ??
-  (movie.tmdb_poster_path
-    ? `${TMDB_POSTER_BASE_URL}${movie.tmdb_poster_path}`
-    : null);
-
-const getGenresLabel = (movie: CollectionMovie) => {
-  if (!movie.genres?.length) return null;
-  return movie.genres
-    .map((genre) =>
-      typeof genre === "string"
-        ? genre
-        : genre?.name ?? "Unknown genre"
-    )
-    .filter(Boolean)
-    .slice(0, 3)
-    .join(" • ");
-};
-
-const formatDate = (value: string | null | undefined) => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-};
+import CollectionGrid from "@/components/my-collection/collection-grid";
+import {
+  type CollectionMovie,
+  type MovieStatus,
+  MOVIE_SELECT_FIELDS,
+} from "@/lib/movies";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -94,21 +30,7 @@ export default async function HomePage() {
   } else {
     const { data, error } = await supabase
       .from("movies")
-      .select(
-        [
-          "id",
-          "title",
-          "release_year",
-          "status",
-          "rating",
-          "synopsis",
-          "genres",
-          "tmdb_poster_path",
-          "user_poster_url",
-          "estimated_price",
-          "watched_at",
-        ].join(",")
-      )
+      .select(MOVIE_SELECT_FIELDS)
       .eq("profile_id", user.id)
       .order("title", { ascending: true });
 
@@ -224,84 +146,7 @@ export default async function HomePage() {
         </Card>
       )}
 
-      {hasMovies && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {movies.map((movie) => {
-            const posterUrl = getPosterUrl(movie);
-            const genres = getGenresLabel(movie);
-            const watchedDate = formatDate(movie.watched_at);
-            const ratingLabel = movie.rating
-              ? `${movie.rating}/5`
-              : null;
-
-            return (
-              <Card key={movie.id} className="overflow-hidden">
-                <CardContent className="flex gap-4 p-4">
-                  <div className="relative h-40 w-28 shrink-0 overflow-hidden rounded-xl bg-muted">
-                    {posterUrl ? (
-                      <Image
-                        src={posterUrl}
-                        alt={`Poster for ${movie.title}`}
-                        fill
-                        sizes="(min-width: 1024px) 12vw, 30vw"
-                        className="object-cover"
-                        priority={false}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                        No poster
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col gap-3">
-                    <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <CardTitle className="text-xl leading-tight">
-                            {movie.title}
-                          </CardTitle>
-                          {movie.release_year && (
-                            <p className="text-sm text-muted-foreground">
-                              {movie.release_year}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[movie.status]}`}
-                        >
-                          {STATUS_LABEL[movie.status]}
-                        </span>
-                      </div>
-                      {genres && (
-                        <p className="text-xs text-muted-foreground">
-                          {genres}
-                        </p>
-                      )}
-                    </div>
-
-                    {movie.synopsis && (
-                      <p className="line-clamp-3 text-sm text-muted-foreground">
-                        {movie.synopsis}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                      {ratingLabel && <span>Rating: {ratingLabel}</span>}
-                      {watchedDate && <span>Watched: {watchedDate}</span>}
-                      {movie.estimated_price && (
-                        <span>
-                          Value: {formatCurrency(Number(movie.estimated_price))}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      {hasMovies && <CollectionGrid initialMovies={movies} />}
     </section>
   );
 }
