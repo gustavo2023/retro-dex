@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/server";
 import CollectionGrid from "@/components/my-collection/collection-grid";
+import { Clapperboard, Sparkles, ShoppingBag, Film } from "lucide-react";
 import {
   type CollectionMovie,
   type MovieStatus,
@@ -81,41 +82,59 @@ export default async function HomePage() {
 
   const hasMovies = movies.length > 0;
 
+  const metricCards = [
+    {
+      key: "total",
+      label: "Total Movies",
+      value: summary.total,
+      icon: Clapperboard,
+      borderClass: "",
+      iconClass: "text-foreground",
+    },
+    {
+      key: "wishlist",
+      label: "Wishlist",
+      value: summary.statusCounts.wishlist,
+      icon: Sparkles,
+      borderClass: "border-amber-300",
+      iconClass: "text-amber-500",
+    },
+    {
+      key: "owned",
+      label: "Owned",
+      value: summary.statusCounts.owned,
+      icon: ShoppingBag,
+      borderClass: "border-emerald-300",
+      iconClass: "text-emerald-500",
+    },
+    {
+      key: "watched",
+      label: "Watched",
+      value: summary.statusCounts.watched,
+      icon: Film,
+      borderClass: "border-sky-300",
+      iconClass: "text-sky-500",
+    },
+  ];
+
   return (
     <section className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Total Movies</CardDescription>
-            <CardTitle className="text-3xl font-semibold">
-              {summary.total}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Wishlist</CardDescription>
-            <CardTitle className="text-3xl font-semibold">
-              {summary.statusCounts.wishlist}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Owned</CardDescription>
-            <CardTitle className="text-3xl font-semibold">
-              {summary.statusCounts.owned}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Watched</CardDescription>
-            <CardTitle className="text-3xl font-semibold">
-              {summary.statusCounts.watched}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+        {metricCards.map(({ key, label, value, icon: Icon, borderClass, iconClass }) => (
+          <Card key={key} className={borderClass ? `border ${borderClass}` : undefined}>
+            <CardHeader className="flex items-start justify-between space-y-0 pb-0">
+              <CardDescription className="text-xl font-medium">
+                {label}
+              </CardDescription>
+              <Icon className={`size-6 ${iconClass}`} aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-4xl font-semibold md:text-5xl">
+                {value}
+              </CardTitle>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {errorMessage && (

@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +55,7 @@ type CollectionGridProps = {
 
 export default function CollectionGrid({ initialMovies }: CollectionGridProps) {
   const [movies, setMovies] = useState(initialMovies);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -138,6 +137,9 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
   const [status, setStatus] = useState<MovieStatus>(movie.status);
   const [review, setReview] = useState(movie.personal_review ?? "");
   const [rating, setRating] = useState<number>(movie.rating ?? 0);
+  const [price, setPrice] = useState(
+    movie.estimated_price ? String(movie.estimated_price) : ""
+  );
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState<string | null>(
     getPosterUrl(movie)
@@ -145,6 +147,7 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   // Cleanup temporary previews when component unmounts
   useEffect(() => {
@@ -159,6 +162,8 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
     setStatus(movie.status);
     setReview(movie.personal_review ?? "");
     setRating(movie.rating ?? 0);
+    setPrice(movie.estimated_price ? String(movie.estimated_price) : "");
+    setPriceError(null);
     setPosterFile(null);
     setPosterPreview(getPosterUrl(movie));
     if (previewObjectUrl) {
@@ -203,6 +208,11 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
     setError(null);
   };
 
+  const handlePriceChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setPrice(event.target.value);
+    setPriceError(null);
+  };
+
   const handleRatingClick = (value: number) => {
     setRating(value);
   };
@@ -222,6 +232,25 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
       } = await supabase.auth.getUser();
       if (!user) {
         throw new Error("You must be signed in to save changes.");
+      }
+
+      let estimatedPrice: number | null = null;
+      if (shouldShowPriceField) {
+        const trimmedPrice = price.trim();
+        if (!trimmedPrice) {
+          setPriceError("Please enter the purchase price for this movie.");
+          setIsSaving(false);
+          return;
+        }
+        const parsedPrice = Number.parseFloat(trimmedPrice);
+        if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+          setPriceError("Enter a valid non-negative purchase price.");
+          setIsSaving(false);
+          return;
+        }
+        estimatedPrice = parsedPrice;
+      } else {
+        setPriceError(null);
       }
 
       let userPosterUrl = movie.user_poster_url ?? null;
@@ -251,6 +280,8 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
         rating: rating > 0 ? rating : null,
         personal_review: review.trim() ? review.trim() : null,
         user_poster_url: userPosterUrl,
+        estimated_price: estimatedPrice,
+        watched_at: status === "watched" ? new Date().toISOString() : null,
       };
 
       const { data, error: updateError } = await supabase
@@ -313,6 +344,7 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
   const metaLabel =
     [movie.release_year, genres].filter(Boolean).join(" • ") || "No details";
   const hoverBorderClass = STATUS_HOVER_BORDER[movie.status];
+  const shouldShowPriceField = status === "owned" || status === "watched";
   const renderStaticStars = (sizeClass = "size-4", wrapperClassName = "") => (
     <div
       className={`flex gap-0.5 text-amber-500 ${wrapperClassName}`}
@@ -334,110 +366,120 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
     </div>
   );
 
+  const dialogContentId = useMemo(() => `movie-dialog-${movie.id}`, [movie.id]);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button type="button" className="group w-full text-left">
-          <Card
-            className={`overflow-hidden transition ${hoverBorderClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
-              isGridLayout
-                ? "flex h-full flex-col border !gap-0 !py-0 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary"
-                : "flex border"
-            }`}
-          >
-            {isGridLayout ? (
-              <>
-                <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
-                  {posterUrlForCard ? (
-                    <Image
-                      src={posterUrlForCard}
-                      alt={`Poster for ${movie.title}`}
-                      fill
-                      sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 24vw, 60vw"
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                      priority={false}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                      No poster
-                    </div>
-                  )}
-                </div>
-                <CardContent className="space-y-2 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <CardTitle className={`${titleClass} leading-tight`}>
-                        {movie.title}
-                      </CardTitle>
-                      <CardDescription className={`${metaTextClass} text-muted-foreground`}>
-                        {metaLabel}
-                      </CardDescription>
-                    </div>
-                    {renderStaticStars("size-4")}
+      <button
+        type="button"
+        className="group w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls={dialogContentId}
+        onClick={() => handleOpenChange(true)}
+      >
+        <Card
+          className={`overflow-hidden transition ${hoverBorderClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
+            isGridLayout
+              ? "flex h-full flex-col border !gap-0 !py-0 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary"
+              : "flex border"
+          }`}
+        >
+          {isGridLayout ? (
+            <>
+              <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+                {posterUrlForCard ? (
+                  <Image
+                    src={posterUrlForCard}
+                    alt={`Poster for ${movie.title}`}
+                    fill
+                    sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 24vw, 60vw"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                    priority={false}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                    No poster
                   </div>
-                  <div className="flex justify-end">
-                    {badge}
-                  </div>
-                </CardContent>
-              </>
-            ) : (
-              <CardContent className="flex w-full gap-5 p-5">
-                <div className="relative h-44 w-32 shrink-0 overflow-hidden rounded-2xl bg-muted">
-                  {posterUrlForCard ? (
-                    <Image
-                      src={posterUrlForCard}
-                      alt={`Poster for ${movie.title}`}
-                      fill
-                      sizes="(min-width: 1280px) 12vw, 40vw"
-                      className="object-cover"
-                      priority={false}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                      No poster
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col gap-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <CardTitle className={`${titleClass} leading-tight`}>
-                        {movie.title}
-                      </CardTitle>
-                      <CardDescription className={`${metaTextClass} text-muted-foreground`}>
-                        {metaLabel}
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {badge}
-                    </div>
-                  </div>
-                  {movie.synopsis && (
-                    <CardDescription className={`${synopsisClass} text-muted-foreground line-clamp-4`}>
-                      {movie.synopsis}
+                )}
+              </div>
+              <CardContent className="space-y-2 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className={`${titleClass} leading-tight`}>
+                      {movie.title}
+                    </CardTitle>
+                    <CardDescription className={`${metaTextClass} text-muted-foreground`}>
+                      {metaLabel}
                     </CardDescription>
-                  )}
-                  <div className={`flex flex-wrap gap-6 ${detailsClass} text-muted-foreground`}>
-                    {ratingValue > 0 ? (
-                      <div className="flex items-center">
-                        {renderStaticStars("size-4")}
-                      </div>
-                    ) : (
-                      <span>No rating yet</span>
-                    )}
-                    {watchedDate && <span>Watched: {watchedDate}</span>}
-                    {movie.estimated_price && (
-                      <span>Value: {formatCurrency(movie.estimated_price)}</span>
-                    )}
                   </div>
+                  {renderStaticStars("size-4")}
+                </div>
+                <div className="flex justify-end">
+                  {badge}
                 </div>
               </CardContent>
-            )}
-          </Card>
-        </button>
-      </DialogTrigger>
+            </>
+          ) : (
+            <CardContent className="flex w-full gap-5 p-5">
+              <div className="relative h-44 w-32 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                {posterUrlForCard ? (
+                  <Image
+                    src={posterUrlForCard}
+                    alt={`Poster for ${movie.title}`}
+                    fill
+                    sizes="(min-width: 1280px) 12vw, 40vw"
+                    className="object-cover"
+                    priority={false}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                    No poster
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-1 flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className={`${titleClass} leading-tight`}>
+                      {movie.title}
+                    </CardTitle>
+                    <CardDescription className={`${metaTextClass} text-muted-foreground`}>
+                      {metaLabel}
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    {badge}
+                  </div>
+                </div>
+                {movie.synopsis && (
+                  <CardDescription className={`${synopsisClass} text-muted-foreground line-clamp-4`}>
+                    {movie.synopsis}
+                  </CardDescription>
+                )}
+                <div className={`flex flex-wrap gap-6 ${detailsClass} text-muted-foreground`}>
+                  {ratingValue > 0 ? (
+                    <div className="flex items-center">
+                      {renderStaticStars("size-4")}
+                    </div>
+                  ) : (
+                    <span>No rating yet</span>
+                  )}
+                  {watchedDate && <span>Watched: {watchedDate}</span>}
+                  {movie.estimated_price && (
+                    <span>Value: {formatCurrency(movie.estimated_price)}</span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      </button>
 
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        id={dialogContentId}
+        className="max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Edit "{movie.title}"</DialogTitle>
           <DialogDescription>
@@ -462,7 +504,7 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
           </div>
         </div>
 
-        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative h-48 w-full max-w-[180px] overflow-hidden rounded-xl bg-muted">
               {posterPreview ? (
@@ -511,6 +553,30 @@ function MovieEditDialog({ movie, onMovieUpdated, layout }: MovieEditDialogProps
               </SelectContent>
             </Select>
           </div>
+
+          {shouldShowPriceField && (
+            <div className="space-y-2">
+              <Label htmlFor={`price-${movie.id}`}>Purchase price</Label>
+              <Input
+                id={`price-${movie.id}`}
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="e.g. 24.99"
+                value={price}
+                onChange={handlePriceChange}
+                required={shouldShowPriceField}
+              />
+              {priceError ? (
+                <p className="text-xs text-red-500">{priceError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  We'll store this as the estimated value for your collection stats.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Rating</Label>
