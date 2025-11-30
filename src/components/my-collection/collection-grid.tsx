@@ -130,12 +130,12 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("El archivo debe ser una imagen válida.");
+      setError("The file must be a valid image.");
       return;
     }
 
     if (file.size > MAX_POSTER_SIZE) {
-      setError("El poster debe pesar menos de 5MB.");
+      setError("Poster must be smaller than 5MB.");
       return;
     }
 
@@ -168,7 +168,7 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error("Necesitas iniciar sesión para guardar cambios.");
+        throw new Error("You must be signed in to save changes.");
       }
 
       let userPosterUrl = movie.user_poster_url ?? null;
@@ -187,7 +187,7 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
         }
 
         if (!STORAGE_BASE_URL) {
-          throw new Error("Falta configurar NEXT_PUBLIC_SUPABASE_URL.");
+          throw new Error("NEXT_PUBLIC_SUPABASE_URL is not configured.");
         }
 
         userPosterUrl = `${STORAGE_BASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
@@ -218,18 +218,18 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
         // Supabase may return GenericStringError when row-level errors happen
         "error" in (data as Record<string, unknown>)
       ) {
-        throw new Error("Supabase devolvió una respuesta inválida.");
+        throw new Error("Supabase returned an invalid response.");
       }
 
       const updatedMovie = data as CollectionMovie;
       onMovieUpdated(updatedMovie);
-      toast.success(`${movie.title} se actualizó correctamente.`);
+      toast.success(`${movie.title} was updated successfully.`);
       handleOpenChange(false);
     } catch (caughtError) {
       const message =
         caughtError instanceof Error
           ? caughtError.message
-          : "No pudimos guardar los cambios.";
+          : "We couldn't save your changes.";
       setError(message);
       toast.error(message);
     } finally {
@@ -241,8 +241,8 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
   const genres = getGenresLabel(movie);
   const watchedDate = formatDate(movie.watched_at);
   const ratingLabel = movie.rating ? `${movie.rating}/5` : null;
-  const detailedGenres = genres ?? "Sin datos";
-  const synopsisText = movie.synopsis ?? "No hay sinopsis disponible.";
+  const detailedGenres = genres ?? "No data";
+  const synopsisText = movie.synopsis ?? "No synopsis available.";
   const releaseYear = movie.release_year ? String(movie.release_year) : "?";
 
   return (
@@ -313,29 +313,25 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
 
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar "{movie.title}"</DialogTitle>
+          <DialogTitle>Edit "{movie.title}"</DialogTitle>
           <DialogDescription>
-            Actualiza tu reseña personal, estado, rating o sube un poster propio.
+            Update your personal review, status, rating, or upload your own poster.
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 rounded-2xl border border-border/60 bg-muted/20 p-4 text-sm space-y-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Sinopsis</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Synopsis</p>
             <p className="mt-1 leading-relaxed text-foreground/90">{synopsisText}</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3 text-sm">
+          <div className="grid gap-4 sm:grid-cols-2 text-sm">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Año</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Release year</p>
               <p className="mt-1 font-medium">{releaseYear}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Géneros</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Genres</p>
               <p className="mt-1 font-medium">{detailedGenres}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Estado actual</p>
-              <p className="mt-1 font-medium">{STATUS_LABEL[movie.status]}</p>
             </div>
           </div>
         </div>
@@ -358,7 +354,7 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
               )}
             </div>
             <div className="flex-1 space-y-2">
-              <Label htmlFor={`poster-${movie.id}`}>Poster personalizado</Label>
+              <Label htmlFor={`poster-${movie.id}`}>Custom poster</Label>
               <Input
                 id={`poster-${movie.id}`}
                 type="file"
@@ -366,13 +362,13 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
                 onChange={handlePosterChange}
               />
               <p className="text-xs text-muted-foreground">
-                Formatos PNG o JPG. Tamaño máximo 5MB.
+                PNG or JPG files up to 5MB.
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`status-${movie.id}`}>Estado</Label>
+            <Label htmlFor={`status-${movie.id}`}>Status</Label>
             <Select
               value={status}
               onValueChange={(value) => setStatus(value as MovieStatus)}
@@ -400,7 +396,7 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
                     type="button"
                     onClick={() => handleRatingClick(value)}
                     className="text-amber-500"
-                    aria-label={`Asignar ${value} estrellas`}
+                    aria-label={`Assign ${value} stars`}
                   >
                     <Star
                       className={`size-6 ${
@@ -416,20 +412,20 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
                 size="sm"
                 onClick={handleClearRating}
               >
-                Limpiar
+                Clear
               </Button>
               <span className="text-sm text-muted-foreground">
-                {rating > 0 ? `${rating}/5` : "Sin rating"}
+                {rating > 0 ? `${rating}/5` : "No rating"}
               </span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`review-${movie.id}`}>Reseña personal</Label>
+            <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
             <textarea
               id={`review-${movie.id}`}
               className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              placeholder="Escribe tus notas privadas"
+              placeholder="Write your private notes"
               value={review}
               onChange={(event) => setReview(event.target.value)}
             />
@@ -443,16 +439,16 @@ function MovieEditDialog({ movie, onMovieUpdated }: MovieEditDialogProps) {
               variant="outline"
               onClick={() => handleOpenChange(false)}
             >
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" disabled={isSaving}>
               {isSaving ? (
                 <span className="flex items-center gap-2">
-                  <Spinner className="size-4" /> Guardando
+                  <Spinner className="size-4" /> Saving
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <UploadCloud className="size-4" /> Guardar cambios
+                  <UploadCloud className="size-4" /> Save changes
                 </span>
               )}
             </Button>
