@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -405,7 +406,17 @@ function MovieEditDialog({
   const ratingValue = movie.rating ?? 0;
   const detailedGenres = genres ?? "No data";
   const synopsisText = movie.synopsis ?? "No synopsis available.";
-  const releaseYear = movie.release_year ? String(movie.release_year) : "?";
+  const releaseYear = movie.release_year
+    ? String(movie.release_year)
+    : "Unknown release year";
+  const genreNames = (movie.genres ?? [])
+    .map((genre) => (typeof genre === "string" ? genre : genre?.name ?? null))
+    .filter((name): name is string => Boolean(name));
+  const gridVisibleGenres = genreNames.slice(0, 2);
+  const remainingGenreCount = Math.max(
+    genreNames.length - gridVisibleGenres.length,
+    0
+  );
 
   const isGridLayout = layout === "grid";
   const titleClass = isGridLayout ? "text-base" : "text-2xl";
@@ -421,8 +432,6 @@ function MovieEditDialog({
       {STATUS_LABEL[movie.status]}
     </span>
   );
-  const metaLabel =
-    [movie.release_year, genres].filter(Boolean).join(" • ") || "No details";
   const hoverBorderClass = STATUS_HOVER_BORDER[movie.status];
   const shouldShowPriceField = status === "owned" || status === "watched";
   const renderStaticStars = (sizeClass = "size-4", wrapperClassName = "") => (
@@ -492,8 +501,26 @@ function MovieEditDialog({
                     <CardDescription
                       className={`${metaTextClass} text-muted-foreground`}
                     >
-                      {metaLabel}
+                      {releaseYear}
                     </CardDescription>
+                    {genreNames.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {gridVisibleGenres.map((name, index) => (
+                          <Badge
+                            key={`${movie.id}-grid-${name}-${index}`}
+                            variant="secondary"
+                            className="bg-muted text-muted-foreground"
+                          >
+                            {name}
+                          </Badge>
+                        ))}
+                        {remainingGenreCount > 0 && (
+                          <span className="text-[12px] font-medium text-muted-foreground">
+                            +{remainingGenreCount}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {renderStaticStars("size-4")}
                 </div>
@@ -527,8 +554,21 @@ function MovieEditDialog({
                     <CardDescription
                       className={`${metaTextClass} text-muted-foreground`}
                     >
-                      {metaLabel}
+                      {releaseYear}
                     </CardDescription>
+                    {genreNames.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {genreNames.map((name, index) => (
+                          <Badge
+                            key={`${movie.id}-list-${name}-${index}`}
+                            variant="secondary"
+                            className="bg-muted text-muted-foreground"
+                          >
+                            {name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2">{badge}</div>
                 </div>
