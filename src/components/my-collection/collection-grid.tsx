@@ -757,15 +757,30 @@ function MovieEditDialog({
 
           <DialogFooter className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
-              type="button"
-              variant="outline"
-              className="cursor-pointer"
-              onClick={() => handleOpenChange(false)}
+              type="submit"
+              className="order-1 w-full cursor-pointer sm:order-2 sm:w-auto"
               disabled={isSaving || isDeleting}
             >
-              Cancel
+              {isSaving ? (
+                <span className="flex items-center gap-2">
+                  <Spinner className="size-4" /> Saving
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <UploadCloud className="size-4" /> Save changes
+                </span>
+              )}
             </Button>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <div className="order-2 flex w-full flex-row gap-2 sm:order-1 sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 cursor-pointer sm:flex-none"
+                onClick={() => handleOpenChange(false)}
+                disabled={isSaving || isDeleting}
+              >
+                Cancel
+              </Button>
               <AlertDialog
                 open={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
@@ -775,7 +790,7 @@ function MovieEditDialog({
                     type="button"
                     variant="destructive"
                     disabled={isSaving || isDeleting}
-                    className="flex items-center gap-2 cursor-pointer"
+                    className="flex flex-1 items-center justify-center gap-2 cursor-pointer sm:flex-none"
                   >
                     <Trash2 className="size-4" /> Delete
                   </Button>
@@ -789,13 +804,16 @@ function MovieEditDialog({
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>
+                    <AlertDialogCancel
+                      disabled={isDeleting}
+                      className="cursor-pointer"
+                    >
                       Keep movie
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDelete}
                       disabled={isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-destructive text-destructive-foreground cursor-pointer hover:bg-destructive/90"
                     >
                       {isDeleting ? (
                         <span className="flex items-center gap-2">
@@ -808,21 +826,6 @@ function MovieEditDialog({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Button
-                type="submit"
-                className="cursor-pointer"
-                disabled={isSaving || isDeleting}
-              >
-                {isSaving ? (
-                  <span className="flex items-center gap-2">
-                    <Spinner className="size-4" /> Saving
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <UploadCloud className="size-4" /> Save changes
-                  </span>
-                )}
-              </Button>
             </div>
           </DialogFooter>
         </form>
