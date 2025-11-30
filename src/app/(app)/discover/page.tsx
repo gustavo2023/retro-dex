@@ -22,7 +22,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
-import { Search, Plus, Flame, Star, Clock, type LucideIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Search,
+  Plus,
+  Flame,
+  Star,
+  Clock,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 type MovieResult = {
   id: number;
@@ -33,6 +41,7 @@ type MovieResult = {
   original_language?: string;
   vote_average?: number;
   vote_count?: number;
+  genres?: { id: number; name: string }[];
 };
 
 type AddState = {
@@ -76,10 +85,8 @@ const collectionSections: Array<{
   },
 ];
 
-const getPosterUrl = (
-  path?: string | null,
-  size: "w500" | "w780" = "w500"
-) => (path ? `https://image.tmdb.org/t/p/${size}${path}` : null);
+const getPosterUrl = (path?: string | null, size: "w500" | "w780" = "w500") =>
+  path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 
 const formatReleaseDate = (date?: string) => {
   if (!date) return "No release date available";
@@ -177,6 +184,7 @@ export default function DiscoverPage() {
                 body: {
                   endpoint: section.endpoint,
                   page: 1,
+                  includeGenres: true,
                 },
               }
             );
@@ -191,15 +199,15 @@ export default function DiscoverPage() {
         );
 
         if (!isMounted) return;
-        setFeaturedData(Object.fromEntries(responses) as Partial<
-          Record<CollectionKey, MovieResult[]>
-        >);
+        setFeaturedData(
+          Object.fromEntries(responses) as Partial<
+            Record<CollectionKey, MovieResult[]>
+          >
+        );
       } catch (err) {
         if (!isMounted) return;
         setFeaturedError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load featured movies."
+          err instanceof Error ? err.message : "Failed to load featured movies."
         );
         setFeaturedData({});
       } finally {
@@ -229,6 +237,7 @@ export default function DiscoverPage() {
         body: {
           endpoint: "search",
           query: trimmedQuery,
+          includeGenres: true,
         },
       });
 
@@ -270,9 +279,7 @@ export default function DiscoverPage() {
     try {
       const releaseYear = getReleaseYear(movie.release_date);
       if (!releaseYear) {
-        throw new Error(
-          "This movie does not have a valid release date."
-        );
+        throw new Error("This movie does not have a valid release date.");
       }
 
       const { data: userData } = await supabase.auth.getUser();
@@ -289,6 +296,7 @@ export default function DiscoverPage() {
         release_year: releaseYear,
         synopsis: movie.overview ?? null,
         tmdb_poster_path: movie.poster_path ?? null,
+        genres: movie.genres ?? null,
       });
 
       if (error) {
@@ -300,9 +308,7 @@ export default function DiscoverPage() {
       toast.success(`${movie.title} was added to your collection.`);
     } catch (err) {
       const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to add the movie.";
+        err instanceof Error ? err.message : "Failed to add the movie.";
       setAddStates((prev) => ({
         ...prev,
         [movie.id]: { status: "error", message },
@@ -331,7 +337,7 @@ export default function DiscoverPage() {
               disabled={isSearching}
             />
             <Button type="submit" disabled={isSearching}>
-              <Search className="size-4"/>
+              <Search className="size-4" />
               {isSearching ? "Searching…" : "Search"}
             </Button>
           </form>
@@ -382,8 +388,8 @@ export default function DiscoverPage() {
                         className="group w-full text-left"
                         aria-label={`Ver detalles de ${movie.title}`}
                       >
-                        <Card className="border hover:border-amber-500 !gap-0 !py-0 overflow-hidden transition group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary">
-                          <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+                        <Card className="border hover:border-amber-500 gap-0! py-0! overflow-hidden transition group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-primary">
+                          <div className="relative aspect-3/4 w-full overflow-hidden bg-muted">
                             {posterUrl ? (
                               <Image
                                 src={posterUrl}
@@ -400,10 +406,19 @@ export default function DiscoverPage() {
                             )}
                           </div>
                           <CardContent className="space-y-1 px-4 py-3">
-                            <CardTitle className="text-base">{movie.title}</CardTitle>
+                            <CardTitle className="text-base">
+                              {movie.title}
+                            </CardTitle>
                             <CardDescription>
                               {formatReleaseDate(movie.release_date)}
                             </CardDescription>
+                            {movie.genres && movie.genres.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {movie.genres
+                                  .map((genre) => genre.name)
+                                  .join(", ")}
+                              </p>
+                            )}
                           </CardContent>
                         </Card>
                       </button>
@@ -425,7 +440,10 @@ export default function DiscoverPage() {
             <Card key={section.key}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Icon className={`size-4 ${accentClass}`} aria-hidden="true" />
+                  <Icon
+                    className={`size-4 ${accentClass}`}
+                    aria-hidden="true"
+                  />
                   {section.title}
                 </CardTitle>
                 <CardDescription>{section.description}</CardDescription>
@@ -449,11 +467,13 @@ export default function DiscoverPage() {
                   <p className="text-sm text-destructive">{featuredError}</p>
                 )}
 
-                {!isLoadingFeatured && !featuredError && movies.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No movies found for this category.
-                  </p>
-                )}
+                {!isLoadingFeatured &&
+                  !featuredError &&
+                  movies.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No movies found for this category.
+                    </p>
+                  )}
 
                 {!isLoadingFeatured &&
                   !featuredError &&
@@ -537,13 +557,14 @@ function MovieDialogCard({
   onAdd,
 }: MovieDialogCardProps) {
   const posterUrl = getPosterUrl(movie.poster_path);
+  const genres = movie.genres ?? [];
 
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl">
         <div className="flex flex-col gap-6 sm:flex-row">
-          <div className="relative mx-auto aspect-[3/4] w-36 overflow-hidden rounded-lg bg-muted sm:mx-0 sm:w-48">
+          <div className="relative mx-auto aspect-3/4 w-36 overflow-hidden rounded-lg bg-muted sm:mx-0 sm:w-48">
             {posterUrl ? (
               <Image
                 src={posterUrl}
@@ -569,6 +590,19 @@ function MovieDialogCard({
               <p className="text-muted-foreground">
                 {movie.overview || "No synopsis available."}
               </p>
+              {genres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {genres.map((genre) => (
+                    <Badge
+                      key={genre.id}
+                      variant="secondary"
+                      className="bg-muted text-muted-foreground"
+                    >
+                      {genre.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               <ul className="space-y-1 text-muted-foreground">
                 {movie.original_language && (
                   <li>
@@ -577,9 +611,9 @@ function MovieDialogCard({
                 )}
                 {typeof movie.vote_average === "number" && (
                   <li>
-                    TMDB rating: {movie.vote_average.toFixed(1)} ({
-                      movie.vote_count ?? 0
-                    } {movie.vote_count === 1 ? "vote" : "votes"})
+                    TMDB rating: {movie.vote_average.toFixed(1)} (
+                    {movie.vote_count ?? 0}{" "}
+                    {movie.vote_count === 1 ? "vote" : "votes"})
                   </li>
                 )}
               </ul>
@@ -600,7 +634,9 @@ function MovieDialogCard({
                     {isAdding ? "Adding…" : "Add to my collection"}
                   </Button>
                   {addState?.status === "error" && addState.message && (
-                    <p className="text-sm text-destructive">{addState.message}</p>
+                    <p className="text-sm text-destructive">
+                      {addState.message}
+                    </p>
                   )}
                 </>
               )}

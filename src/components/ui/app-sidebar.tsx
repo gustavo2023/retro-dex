@@ -25,12 +25,12 @@ import { Library, Compass, LayoutDashboard, Settings } from "lucide-react";
 const primaryItems = [
   {
     href: "/",
-    label: "Mi Colección",
+    label: "My Collection",
     icon: Library,
   },
   {
     href: "/discover",
-    label: "Explorar",
+    label: "Explore",
     icon: Compass,
   },
   {
@@ -43,7 +43,7 @@ const primaryItems = [
 const secondaryItems = [
   {
     href: "/settings",
-    label: "Ajustes",
+    label: "Settings",
     icon: Settings,
   },
 ];
