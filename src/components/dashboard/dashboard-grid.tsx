@@ -6,7 +6,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { DollarSign, Eye, Film, Loader2 } from "lucide-react";
+import { DollarSign, Film, Loader2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client";
@@ -18,6 +18,7 @@ import {
 import { calculateSummary } from "@/components/dashboard/collection-dashboard";
 import { WatchedMoviesChart } from "@/components/dashboard/watched-movies-chart";
 import { TopGenresChart } from "@/components/dashboard/top-genres-chart";
+import { StatusDistributionChart } from "@/components/dashboard/status-distribution-chart";
 
 export default function DashboardGrid() {
   const [queryClient] = useState(() => new QueryClient());
@@ -69,71 +70,54 @@ function DashboardGridContent() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:grid-rows-5">
-      {/* Column 1: Metrics Cards */}
-      <div className="flex flex-col gap-4 md:row-span-5">
-        <Card className="flex-1 border border-emerald-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium text-emerald-500">
-              Total Collection Value
-            </CardTitle>
-            <DollarSign className="size-6 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl text-emerald-500 font-bold">
-              {formatCurrency(summary.totalValue)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Estimated value based on purchase price
-            </p>
-          </CardContent>
-        </Card>
+    <div className="flex flex-1 flex-col gap-4 p-0">
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Metrics Column */}
+        <div className="flex flex-col gap-4 md:col-span-1">
+          {/* Total Value Card */}
+          <Card className="flex-1 border border-emerald-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-emerald-500">
+                Total Collection Value
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-500">
+                {formatCurrency(summary.totalValue)}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Estimated value based on purchase price
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="flex-1 border border-sky-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium text-sky-500">
-              Watched Movies
-            </CardTitle>
-            <Eye className="size-6 text-sky-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl text-sky-500 font-bold">
-              {summary.statusCounts.watched}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Movies marked as watched
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="flex-1 border border-amber-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium text-amber-500">
-              Total Movies
-            </CardTitle>
-            <Film className="size-6 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl text-amber-500 font-bold">
-              {summary.total}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Items in your collection
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Columns 2 & 3: Charts Placeholders */}
-      <div className="grid gap-4 md:col-span-2 md:row-span-5 md:grid-rows-5">
-        <div className="md:row-span-3">
+          {/* Total Movies Card */}
+          <Card className="flex-1 border border-amber-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-amber-500">
+                Total Movies
+              </CardTitle>
+              <Film className="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-500">
+                {summary.total}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Items in your collection
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Watched History Chart */}
+        <div className="md:col-span-2 min-h-[300px]">
           <WatchedMoviesChart movies={movies} />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 md:row-span-2">
+        {/* Bottom Row Charts (Pie & Bar) */}
+        <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
           <TopGenresChart movies={movies} />
-          <Card className="flex items-center justify-center border-dashed">
-            <p className="text-muted-foreground">Secondary Chart 2</p>
-          </Card>
+          <StatusDistributionChart movies={movies} />
         </div>
       </div>
     </div>
