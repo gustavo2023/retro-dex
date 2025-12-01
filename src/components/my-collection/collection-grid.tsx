@@ -495,37 +495,39 @@ function MovieEditDialog({
                   </div>
                 )}
               </div>
-              <CardContent className="space-y-2 px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className={`${titleClass} leading-tight`}>
-                      {movie.title}
-                    </CardTitle>
-                    <CardDescription
-                      className={`${metaTextClass} text-muted-foreground`}
-                    >
-                      {releaseYear}
-                    </CardDescription>
-                    {genreNames.length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {gridVisibleGenres.map((name, index) => (
-                          <Badge
-                            key={`${movie.id}-grid-${name}-${index}`}
-                            variant="secondary"
-                            className="bg-muted text-muted-foreground"
-                          >
-                            {name}
-                          </Badge>
-                        ))}
-                        {remainingGenreCount > 0 && (
-                          <span className="text-[12px] font-medium text-muted-foreground">
-                            +{remainingGenreCount}
-                          </span>
-                        )}
-                      </div>
-                    )}
+              <CardContent className="grid flex-1 grid-rows-[1fr_auto] gap-2 px-4 py-3">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className={`${titleClass} leading-tight`}>
+                        {movie.title}
+                      </CardTitle>
+                      <CardDescription
+                        className={`${metaTextClass} text-muted-foreground`}
+                      >
+                        {releaseYear}
+                      </CardDescription>
+                    </div>
+                    {renderStaticStars("size-4")}
                   </div>
-                  {renderStaticStars("size-4")}
+                  {genreNames.length > 0 && (
+                    <div className="flex flex-nowrap items-center gap-1.5 overflow-hidden">
+                      {gridVisibleGenres.map((name, index) => (
+                        <Badge
+                          key={`${movie.id}-grid-${name}-${index}`}
+                          variant="secondary"
+                          className="bg-muted text-muted-foreground whitespace-nowrap px-1.5"
+                        >
+                          {name}
+                        </Badge>
+                      ))}
+                      {remainingGenreCount > 0 && (
+                        <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+                          +{remainingGenreCount}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-end">{badge}</div>
               </CardContent>
