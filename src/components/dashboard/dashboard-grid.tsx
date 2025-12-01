@@ -17,6 +17,7 @@ import {
 } from "@/lib/movies";
 import { calculateSummary } from "@/components/dashboard/collection-dashboard";
 import { WatchedMoviesChart } from "@/components/dashboard/watched-movies-chart";
+import { TopGenresChart } from "@/components/dashboard/top-genres-chart";
 
 export default function DashboardGrid() {
   const [queryClient] = useState(() => new QueryClient());
@@ -68,9 +69,9 @@ function DashboardGridContent() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:grid-rows-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:grid-rows-5">
       {/* Column 1: Metrics Cards */}
-      <div className="flex flex-col gap-4 md:row-span-3">
+      <div className="flex flex-col gap-4 md:row-span-5">
         <Card className="flex-1 border border-emerald-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base font-medium text-emerald-500">
@@ -124,14 +125,12 @@ function DashboardGridContent() {
       </div>
 
       {/* Columns 2 & 3: Charts Placeholders */}
-      <div className="grid gap-4 md:col-span-2 md:row-span-3 md:grid-rows-3">
-        <div className="md:row-span-2">
+      <div className="grid gap-4 md:col-span-2 md:row-span-5 md:grid-rows-5">
+        <div className="md:row-span-3">
           <WatchedMoviesChart movies={movies} />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 md:row-span-1">
-          <Card className="flex items-center justify-center border-dashed">
-            <p className="text-muted-foreground">Secondary Chart 1</p>
-          </Card>
+        <div className="grid gap-4 md:grid-cols-2 md:row-span-2">
+          <TopGenresChart movies={movies} />
           <Card className="flex items-center justify-center border-dashed">
             <p className="text-muted-foreground">Secondary Chart 2</p>
           </Card>
