@@ -4,6 +4,15 @@
 > Discover, catalog, and track your film journey with a modern, secure, and beautiful interface.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
+[![Next.js](https://img.shields.io/badge/Next.js-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000?logo=shadcnui&logoColor=fff)](https://ui.shadcn.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=fff)](https://supabase.com/)
+[![Lucide](https://img.shields.io/badge/Lucide_Icons-F05032?logo=lucide&logoColor=white)](https://lucide.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-6DA55F?logo=node.js&logoColor=white)](https://nodejs.org/en)
+[![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query/latest)
 
 ## 🌐 Live Demo
 
@@ -46,21 +55,21 @@ It solves the problem of scattered movie lists by providing a centralized, priva
 
 ### Core Framework
 
-[![Next.js](https://img.shields.io/badge/Next.js-black?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
+- **Next.js (App Router)** - Server-side rendering capabilities, routing, and simplified API handling.
+- **React** - Interactive UI components and managing client-side state.
+- **TypeScript** - Type safety across the application, reducing runtime errors.
 
 ### UI & Styling
 
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000?logo=shadcnui&logoColor=fff)](https://ui.shadcn.com/)
-[![Lucide](https://img.shields.io/badge/Lucide_Icons-F05032?logo=lucide&logoColor=white)](https://lucide.dev/)
+- **Tailwind CSS** - Utility-first for styling, allowing for rapid UI development.
+- **shadcn/ui** - Re-usable components built using Radix UI and Tailwind CSS.
+- **Lucide React** - Icon library used throughout the application interface.
 
 ### Backend & Data
 
-[![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=fff)](https://supabase.com/)
-[![Node.js](https://img.shields.io/badge/Node.js-6DA55F?logo=node.js&logoColor=white)](https://nodejs.org/en)
-[![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query/latest)
+- **Supabase** - Complete backend-as-a-service (BaaS). Handles Authentication, the PostgreSQL database, and Storage for user uploads.
+- **Node.js** - Execute server actions, route handlers and middleware.
+- **TanStack Query (React Query)** - Manages server state in the frontend. It handles data fetching, caching, synchronization, and updating UI state when data changes.
 
 ### Utilities
 
