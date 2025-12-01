@@ -211,7 +211,7 @@ function CollectionDashboardContent({
   );
 }
 
-function calculateSummary(movies: CollectionMovie[]) {
+export function calculateSummary(movies: CollectionMovie[]) {
   return movies.reduce(
     (acc, movie) => {
       acc.total += 1;
