@@ -658,13 +658,15 @@ function MovieEditDialog({
         userPosterUrl = `${STORAGE_BASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
       }
 
+      const normalizedReview = canEditReview ? review.trim() : "";
+
       const payload = {
         status,
-        rating: rating > 0 ? rating : null,
-        personal_review: review.trim() ? review.trim() : null,
+        rating: canEditRating && rating > 0 ? rating : null,
+        personal_review: normalizedReview ? normalizedReview : null,
         user_poster_url: userPosterUrl,
         estimated_price: estimatedPrice,
-        watched_at: status === "watched" ? new Date().toISOString() : null,
+        watched_at: isWatched ? new Date().toISOString() : null,
       };
 
       const { data, error: updateError } = await supabase
@@ -757,6 +759,7 @@ function MovieEditDialog({
     genreNames.length - gridVisibleGenres.length,
     0
   );
+  const shouldShowCardStars = movie.status === "watched";
 
   const isGridLayout = layout === "grid";
   const titleClass = isGridLayout ? "text-base" : "text-2xl";
@@ -773,7 +776,10 @@ function MovieEditDialog({
     </span>
   );
   const hoverBorderClass = STATUS_HOVER_BORDER[movie.status];
-  const shouldShowPriceField = status === "owned" || status === "watched";
+  const isWatched = status === "watched";
+  const shouldShowPriceField = status === "owned" || isWatched;
+  const canEditReview = isWatched;
+  const canEditRating = isWatched;
   const renderStaticStars = (sizeClass = "size-4", wrapperClassName = "") => (
     <div
       className={`flex gap-0.5 text-amber-500 ${wrapperClassName}`}
@@ -846,7 +852,7 @@ function MovieEditDialog({
                         {releaseYear}
                       </CardDescription>
                     </div>
-                    {renderStaticStars("size-4")}
+                    {shouldShowCardStars && renderStaticStars("size-4")}
                   </div>
                   {genreNames.length > 0 && (
                     <div className="flex flex-nowrap items-center gap-1.5 overflow-hidden">
@@ -927,7 +933,7 @@ function MovieEditDialog({
                 >
                   {ratingValue > 0 ? (
                     <div className="flex items-center">
-                      {renderStaticStars("size-4")}
+                      {shouldShowCardStars && renderStaticStars("size-4")}
                     </div>
                   ) : (
                     <span>No rating yet</span>
@@ -1060,50 +1066,54 @@ function MovieEditDialog({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Rating</Label>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1">
-                {STAR_VALUES.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => handleRatingClick(value)}
-                    className="text-amber-500"
-                    aria-label={`Assign ${value} stars`}
-                  >
-                    <Star
-                      className={`size-6 ${
-                        value <= rating ? "fill-current" : "stroke-current"
-                      }`}
-                    />
-                  </button>
-                ))}
+          {canEditRating && (
+            <div className="space-y-2">
+              <Label>Rating</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  {STAR_VALUES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleRatingClick(value)}
+                      className="text-amber-500"
+                      aria-label={`Assign ${value} stars`}
+                    >
+                      <Star
+                        className={`size-6 ${
+                          value <= rating ? "fill-current" : "stroke-current"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearRating}
+                >
+                  Clear
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {rating > 0 ? `${rating}/5` : "No rating"}
+                </span>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleClearRating}
-              >
-                Clear
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {rating > 0 ? `${rating}/5` : "No rating"}
-              </span>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
-            <textarea
-              id={`review-${movie.id}`}
-              className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              placeholder="Write your private notes"
-              value={review}
-              onChange={(event) => setReview(event.target.value)}
-            />
-          </div>
+          {canEditReview && (
+            <div className="space-y-2">
+              <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
+              <textarea
+                id={`review-${movie.id}`}
+                className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                placeholder="Write your private notes"
+                value={review}
+                onChange={(event) => setReview(event.target.value)}
+              />
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
