@@ -17,6 +17,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { type CollectionMovie } from "@/lib/movies";
+import { ChartBarBig } from "lucide-react";
 
 type TopGenresChartProps = {
   movies: CollectionMovie[];
@@ -66,7 +67,10 @@ export function TopGenresChart({ movies }: TopGenresChartProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader>
-        <CardTitle>Top Genres</CardTitle>
+        <CardTitle>
+          <span>Top Genres</span>
+          <ChartBarBig className="inline-block ml-2 size-5" />
+        </CardTitle>
         <CardDescription>Most collected genres</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">

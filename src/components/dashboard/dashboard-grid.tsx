@@ -80,7 +80,7 @@ function DashboardGridContent() {
               <CardTitle className="text-base font-medium text-emerald-500">
                 Total Collection Value
               </CardTitle>
-              <DollarSign className="h-4 w-4 text-emerald-500" />
+              <DollarSign className="size-6 text-emerald-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-500">
@@ -98,7 +98,7 @@ function DashboardGridContent() {
               <CardTitle className="text-base font-medium text-amber-500">
                 Total Movies
               </CardTitle>
-              <Film className="h-4 w-4 text-amber-500" />
+              <Film className="size-6 text-amber-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-500">

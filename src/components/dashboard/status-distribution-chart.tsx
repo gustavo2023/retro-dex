@@ -19,6 +19,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { type CollectionMovie, STATUS_LABEL } from "@/lib/movies";
+import { ChartPie } from "lucide-react"
 
 type StatusDistributionChartProps = {
   movies: CollectionMovie[];
@@ -76,7 +77,10 @@ export function StatusDistributionChart({
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="items-center pb-0">
-        <CardTitle>Collection Status</CardTitle>
+        <CardTitle>
+          <span>Collection Status</span>
+          <ChartPie className="inline-block ml-2 size-5" />
+        </CardTitle>
         <CardDescription>Distribution by status</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
