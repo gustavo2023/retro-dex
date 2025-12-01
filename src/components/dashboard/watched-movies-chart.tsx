@@ -19,6 +19,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Clock4 } from "lucide-react"
 import { type CollectionMovie } from "@/lib/movies";
 
 const chartConfig = {
@@ -63,7 +64,10 @@ export function WatchedMoviesChart({ movies }: WatchedMoviesChartProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader>
-        <CardTitle>Watched History</CardTitle>
+        <CardTitle>
+          <span>Watched Movies</span>
+          <Clock4 className="inline-block ml-2 size-5" />
+        </CardTitle>
         <CardDescription>Movies watched in the last 12 months</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
