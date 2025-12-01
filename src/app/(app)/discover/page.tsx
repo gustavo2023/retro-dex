@@ -606,8 +606,8 @@ function MovieDialogCard({
   const [formError, setFormError] = useState<string | null>(null);
 
   const requiresPrice = status === "owned" || status === "watched";
-  const canEditRating = status === "watched";
-  const canEditReview = status === "watched";
+  const canEditRating = false;
+  const canEditReview = false;
   const isBusy = isAdding || isCollectionLoading;
 
   const resetForm = () => {
@@ -670,8 +670,8 @@ function MovieDialogCard({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-4xl lg:max-w-5xl">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="relative mx-auto aspect-3/4 w-44 overflow-hidden rounded-xl bg-muted sm:w-60 lg:mx-0 lg:w-72">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="relative mx-auto aspect-3/4 w-44 overflow-hidden rounded-xl bg-muted sm:w-60 lg:mx-0 lg:w-72 lg:self-start">
             {posterUrl ? (
               <Image
                 src={posterUrl}
