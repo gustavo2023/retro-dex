@@ -43,6 +43,10 @@ git clone https://github.com/gustavo2023/retro-dex.git
 cd retro-dex
 npm install
 
+# Create a .env.local file with your Supabase and TMDB settings
+cp .env.example .env.local
+# then update the values inside .env.local
+
 npm run dev
 ```
 
