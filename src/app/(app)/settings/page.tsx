@@ -8,8 +8,9 @@ import {
   useState,
   useTransition,
 } from "react";
-import { Loader2, LogOut, Upload } from "lucide-react";
+import { Loader2, LogOut, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,24 @@ import { logout } from "@/app/(auth)/login/actions";
 
 const MAX_AVATAR_SIZE_BYTES = 3 * 1024 * 1024; // 3MB safeguard
 const PROFILE_EVENT = "retro-profile-updated";
+const MOVIE_STATUS_LABEL: Record<string, string> = {
+  wishlist: "Wishlist",
+  owned: "Owned",
+  watched: "Watched",
+};
+type ExportColumnKey =
+  | "title"
+  | "status"
+  | "release_year"
+  | "rating"
+  | "genres"
+  | "synopsis";
+type ExportColumn = {
+  key: ExportColumnKey;
+  header: string;
+  width: number;
+  align: "center" | "left";
+};
 
 export default function SettingsPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -43,6 +62,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoggingOut, startLogout] = useTransition();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const emitProfileEvent = useCallback((detail: {
     username?: string;
@@ -242,6 +262,184 @@ export default function SettingsPage() {
     });
   };
 
+  const handleExportPdf = async () => {
+    if (!userId) {
+      toast.error("You must be logged in to export your collection.");
+      return;
+    }
+
+    setIsExportingPdf(true);
+    try {
+      const { data, error } = await supabase
+        .from("movies")
+        .select("title, status, release_year, rating, synopsis, genres")
+        .eq("profile_id", userId)
+        .order("title", { ascending: true });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const movies = (data ?? []) as Array<{
+        title: string | null;
+        status: string | null;
+        release_year: number | null;
+        rating?: number | null;
+        synopsis?: string | null;
+        genres?: Array<{ name?: string } | string> | null;
+      }>;
+
+      const doc = new jsPDF({ unit: "pt", format: "letter", orientation: "landscape" });
+      const now = new Date();
+      const safeUsername = username?.trim() || "RetroDex User";
+      const safeEmail = email?.trim() || "Unknown email";
+      const fontFamily = "helvetica";
+
+      const startY = 60;
+      const lineHeight = 16;
+      const rowPadding = 8;
+      const rowGap = 4;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const columns: ExportColumn[] = [
+        { key: "title", header: "Title", width: 150, align: "center" },
+        { key: "status", header: "Status", width: 80, align: "center" },
+        { key: "release_year", header: "Year", width: 60, align: "center" },
+        { key: "rating", header: "Rating", width: 70, align: "center" },
+        { key: "genres", header: "Genres", width: 110, align: "center" },
+        { key: "synopsis", header: "Synopsis", width: 140, align: "left" },
+      ];
+      const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
+      const marginX = Math.max((pageWidth - tableWidth) / 2, 40);
+      const bottomMargin = pageHeight - 60;
+
+      doc.setFontSize(18);
+      doc.setFont(fontFamily, "bold");
+      doc.text("RetroDex Collection Export", marginX, startY);
+
+      doc.setFontSize(12);
+      doc.setFont(fontFamily, "normal");
+      doc.text(`Generated: ${now.toLocaleString()}`, marginX, startY + 24);
+      doc.text(`User: ${safeUsername}`, marginX, startY + 40);
+      doc.text(`Email: ${safeEmail}`, marginX, startY + 56);
+
+      let cursorY = startY + 80;
+
+      const ensureSpace = (neededHeight: number) => {
+        if (cursorY + neededHeight > bottomMargin) {
+          doc.addPage();
+          cursorY = 60;
+          drawHeaderRow();
+        }
+      };
+
+      const splitToLines = (text: string, width: number): string[] => {
+        const result = doc.splitTextToSize(text, width);
+        return Array.isArray(result) ? result : [result];
+      };
+
+      const drawHeaderRow = () => {
+        doc.setFont(fontFamily, "bold");
+        doc.setFontSize(11);
+        let columnX = marginX;
+        columns.forEach((column) => {
+          const headerHeight = lineHeight + rowPadding;
+          const rowTop = cursorY - rowPadding;
+          const textY = rowTop + headerHeight / 2;
+          doc.rect(columnX, rowTop, column.width, headerHeight);
+          const headerX =
+            column.align === "center"
+              ? columnX + column.width / 2
+              : columnX + 8;
+          doc.text(column.header, headerX, textY, {
+            align: column.align === "center" ? "center" : "left",
+            baseline: "middle",
+          });
+          columnX += column.width;
+        });
+        doc.setFont(fontFamily, "normal");
+        cursorY += lineHeight + rowGap;
+      };
+
+      drawHeaderRow();
+
+      if (!movies.length) {
+        ensureSpace(lineHeight);
+        doc.text("No movies in your collection yet.", marginX, cursorY);
+      } else {
+        movies.forEach((movie) => {
+          const rowValues: Record<ExportColumnKey, string> = {
+            title: movie.title?.trim() || "Untitled movie",
+            status:
+              MOVIE_STATUS_LABEL[movie.status ?? ""] ?? "Unknown",
+            release_year: movie.release_year ? String(movie.release_year) : "—",
+            rating:
+              typeof movie.rating === "number" && movie.rating > 0
+                ? `${movie.rating} / 5`
+                : "—",
+            genres: (movie.genres ?? [])
+              .map((genre) =>
+                typeof genre === "string"
+                  ? genre
+                  : genre?.name ?? undefined
+              )
+              .filter((name): name is string => Boolean(name))
+              .join(", ") || "—",
+            synopsis: movie.synopsis?.trim() || "No synopsis available.",
+          };
+
+          const columnTexts = columns.map((column) =>
+            splitToLines(rowValues[column.key], column.width - 12)
+          );
+          const maxLines = Math.max(...columnTexts.map((lines) => lines.length));
+          const rowHeight = Math.max(maxLines * lineHeight + rowPadding, lineHeight + rowPadding);
+
+          ensureSpace(rowHeight + rowGap);
+
+          let columnX = marginX;
+          columnTexts.forEach((lines: string[], index) => {
+            const columnDef = columns[index];
+            const columnWidth = columnDef.width;
+            const rowTop = cursorY - rowPadding;
+            doc.rect(columnX, rowTop, columnWidth, rowHeight);
+            const blockHeight = lines.length * lineHeight;
+            let textY = rowTop + (rowHeight - blockHeight) / 2 + lineHeight / 2;
+            lines.forEach((line: string) => {
+              if (columnDef.align === "center") {
+                doc.text(line, columnX + columnWidth / 2, textY, {
+                  align: "center",
+                  baseline: "middle",
+                });
+              } else {
+                doc.text(line, columnX + 8, textY, {
+                  baseline: "middle",
+                });
+              }
+              textY += lineHeight;
+            });
+            columnX += columnWidth;
+          });
+
+          cursorY += rowHeight + rowGap;
+        });
+      }
+
+      const filename = `retro-dex-collection-${now
+        .toISOString()
+        .slice(0, 10)}.pdf`;
+      doc.save(filename);
+      toast.success("PDF export ready.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not generate the PDF.";
+      toast.error(message);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <form onSubmit={handleProfileSave}>
@@ -346,6 +544,53 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
       </form>
+
+        <Card className="border border-slate-800 bg-slate-900/40">
+          <CardHeader>
+            <CardTitle>Export Collection</CardTitle>
+            <CardDescription>Download your collection data</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between text-sm"
+              disabled
+            >
+              <span className="flex items-center gap-2">
+                <Download className="size-4" aria-hidden="true" />
+                Export as JSON
+              </span>
+              <span className="text-xs text-muted-foreground">Soon</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between text-sm"
+              disabled
+            >
+              <span className="flex items-center gap-2">
+                <Download className="size-4" aria-hidden="true" />
+                Export as CSV
+              </span>
+              <span className="text-xs text-muted-foreground">Soon</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full justify-start gap-2 text-sm"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf || isLoadingProfile}
+            >
+              {isExportingPdf ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Download className="size-4" aria-hidden="true" />
+              )}
+              <span>{isExportingPdf ? "Generating PDF…" : "Generate PDF Report"}</span>
+            </Button>
+          </CardContent>
+        </Card>
 
       <Card className="border border-red-400/40 bg-red-900/10">
         <CardHeader>
