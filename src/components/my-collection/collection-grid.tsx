@@ -20,6 +20,7 @@ import {
   Search,
   SquareLibrary,
   ArrowDownUp,
+  Clapperboard,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -105,10 +106,12 @@ export default function CollectionGrid({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<MovieStatus[]>([]);
   const [yearSort, setYearSort] = useState<"none" | "asc" | "desc">("none");
   const [ratingSort, setRatingSort] = useState<RatingSortOption>("none");
   const isMobile = useIsMobile();
   const genreTriggerId = useId();
+  const statusTriggerId = useId();
 
   useEffect(() => {
     setMovies(initialMovies);
@@ -165,6 +168,15 @@ export default function CollectionGrid({
     });
   };
 
+  const toggleStatus = (status: MovieStatus, checked: boolean) => {
+    setSelectedStatuses((prev) => {
+      if (checked) {
+        return prev.includes(status) ? prev : [...prev, status];
+      }
+      return prev.filter((value) => value !== status);
+    });
+  };
+
   const filteredMovies = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -191,6 +203,10 @@ export default function CollectionGrid({
         if (!intersects) {
           return false;
         }
+      }
+
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(movie.status)) {
+        return false;
       }
 
       return true;
@@ -234,7 +250,7 @@ export default function CollectionGrid({
 
       return (aYear - bYear) * yearMultiplier;
     });
-  }, [movies, searchQuery, selectedGenres, ratingSort, yearSort]);
+  }, [movies, searchQuery, selectedGenres, selectedStatuses, ratingSort, yearSort]);
 
   if (!movies.length) {
     return null;
@@ -246,6 +262,9 @@ export default function CollectionGrid({
   const genreFilterLabel = selectedGenres.length
     ? `${selectedGenres.length} genre${selectedGenres.length > 1 ? "s" : ""}`
     : "All genres";
+  const statusFilterLabel = selectedStatuses.length
+    ? `${selectedStatuses.length} ${selectedStatuses.length > 1 ? "statuses" : "status"}`
+    : "All statuses";
 
   return (
     <div className="space-y-4">
@@ -321,6 +340,59 @@ export default function CollectionGrid({
                       onClick={() => setSelectedGenres([])}
                     >
                       Clear selection
+                    </Button>
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start gap-2"
+                  aria-label="Filter by status"
+                  id={statusTriggerId}
+                >
+                  <Clapperboard className="size-4" />
+                  <span className="truncate text-sm font-normal">
+                    {statusFilterLabel}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-48" align="start" sideOffset={8}>
+                <div className="space-y-1 p-1">
+                  {Object.entries(STATUS_LABEL).map(([value, label]) => {
+                    const statusValue = value as MovieStatus;
+                    const checked = selectedStatuses.includes(statusValue);
+                    return (
+                      <label
+                        key={statusValue}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(checkedState) =>
+                            toggleStatus(statusValue, checkedState === true)
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedStatuses.length > 0 && (
+                  <div className="border-t px-2 py-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setSelectedStatuses([])}
+                    >
+                      Clear status filter
                     </Button>
                   </div>
                 )}
