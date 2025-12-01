@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,7 +17,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { createClient } from "@/utils/supabase/client";
 import { logout } from "@/app/(auth)/login/actions";
 
 export interface NavUserProps {
@@ -29,40 +27,8 @@ export interface NavUserProps {
   };
 }
 
-const BUCKET_NAME = "profile-pictures";
-
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
-  const supabase = createClient();
-
-  // State for the secure signed URL of the avatar
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  // Logic to fetch the signed URL from Supabase Storage
-  const downloadImage = useCallback(
-    async (path: string) => {
-      try {
-        const { data, error } = await supabase.storage
-          .from(BUCKET_NAME)
-          .createSignedUrl(path, 60 * 60); // Valid for 1 hour
-
-        if (error) throw error;
-        setAvatarUrl(data.signedUrl);
-      } catch (error) {
-        console.error("Error downloading avatar:", error);
-      }
-    },
-    [supabase.storage]
-  );
-
-  // Trigger fetch when user prop changes
-  useEffect(() => {
-    if (user.avatar_url) {
-      downloadImage(user.avatar_url);
-    } else {
-      setAvatarUrl(null);
-    }
-  }, [user.avatar_url, downloadImage]);
 
   // Generate Initials (e.g. "MC" for Movie Collector)
   const initials = user.username
@@ -79,7 +45,7 @@ export function NavUser({ user }: NavUserProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-slate-800"
             >
               <Avatar className="h-8 w-8 rounded-lg border border-slate-700">
-                <AvatarImage src={avatarUrl || ""} alt={user.username} />
+                <AvatarImage src={user.avatar_url ?? ""} alt={user.username} />
                 <AvatarFallback className="rounded-lg bg-slate-800 text-amber-500 font-bold">
                   {initials}
                 </AvatarFallback>
@@ -105,7 +71,7 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg border border-slate-700">
-                  <AvatarImage src={avatarUrl || ""} alt={user.username} />
+                  <AvatarImage src={user.avatar_url ?? ""} alt={user.username} />
                   <AvatarFallback className="rounded-lg bg-slate-800 text-amber-500">
                     {initials}
                   </AvatarFallback>

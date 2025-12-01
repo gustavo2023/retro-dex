@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
 
 const MAX_AVATAR_SIZE_BYTES = 3 * 1024 * 1024; // 3MB safeguard
+const PROFILE_EVENT = "retro-profile-updated";
 
 export default function SettingsPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -39,6 +40,14 @@ export default function SettingsPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const emitProfileEvent = useCallback((detail: {
+    username?: string;
+    avatarUrl?: string | null;
+  }) => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent(PROFILE_EVENT, { detail }));
+  }, []);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -133,6 +142,7 @@ export default function SettingsPage() {
       }
 
       setInitialUsername(trimmedUsername);
+      emitProfileEvent({ username: trimmedUsername });
       toast.success("Profile updated.");
     } catch (error) {
       const message =
@@ -185,15 +195,12 @@ export default function SettingsPage() {
           throw new Error(uploadError.message);
         }
 
-        const {
-          data: publicUrlData,
-          error: publicUrlError,
-        } = supabase.storage
+        const { data: publicUrlData } = supabase.storage
           .from("profile-pictures")
           .getPublicUrl(filePath);
 
-        if (publicUrlError || !publicUrlData.publicUrl) {
-          throw new Error(publicUrlError?.message ?? "Failed to resolve URL.");
+        if (!publicUrlData?.publicUrl) {
+          throw new Error("Failed to resolve public avatar URL.");
         }
 
         const { error: profileUpdateError } = await supabase
@@ -206,6 +213,7 @@ export default function SettingsPage() {
         }
 
         setAvatarUrl(publicUrlData.publicUrl);
+        emitProfileEvent({ avatarUrl: publicUrlData.publicUrl });
         toast.success("Avatar updated.");
       } catch (error) {
         const message =
@@ -216,7 +224,7 @@ export default function SettingsPage() {
         event.target.value = "";
       }
     },
-    [supabase, userId]
+    [emitProfileEvent, supabase, userId]
   );
 
   return (
