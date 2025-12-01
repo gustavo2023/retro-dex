@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RetroDex - Tu Colección Personal de Películas",
-  description: "Organiza y disfruta de tu colección de películas con RetroDex.",
+  title: "RetroDex - Your Personal Movie Collection",
+  description: "Organize and enjoy your movie collection with RetroDex.",
 };
 
 export default function RootLayout({
