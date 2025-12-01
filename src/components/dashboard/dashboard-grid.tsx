@@ -16,6 +16,7 @@ import {
   formatCurrency,
 } from "@/lib/movies";
 import { calculateSummary } from "@/components/dashboard/collection-dashboard";
+import { WatchedMoviesChart } from "@/components/dashboard/watched-movies-chart";
 
 export default function DashboardGrid() {
   const [queryClient] = useState(() => new QueryClient());
@@ -112,7 +113,9 @@ function DashboardGridContent() {
             <Film className="size-6 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl text-amber-500 font-bold">{summary.total}</div>
+            <div className="text-3xl text-amber-500 font-bold">
+              {summary.total}
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               Items in your collection
             </p>
@@ -122,9 +125,9 @@ function DashboardGridContent() {
 
       {/* Columns 2 & 3: Charts Placeholders */}
       <div className="grid gap-4 md:col-span-2 md:row-span-3 md:grid-rows-3">
-        <Card className="md:row-span-2 flex items-center justify-center border-dashed">
-          <p className="text-muted-foreground">Main Chart Placeholder</p>
-        </Card>
+        <div className="md:row-span-2">
+          <WatchedMoviesChart movies={movies} />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 md:row-span-1">
           <Card className="flex items-center justify-center border-dashed">
             <p className="text-muted-foreground">Secondary Chart 1</p>
