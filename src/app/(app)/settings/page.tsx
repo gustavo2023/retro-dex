@@ -11,6 +11,7 @@ import {
 import { Loader2, LogOut, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import Papa from "papaparse";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,46 @@ type ExportColumn = {
   width: number;
   align: "center" | "left";
 };
+type ExportMovie = {
+  title: string | null;
+  status: string | null;
+  release_year: number | null;
+  rating?: number | null;
+  synopsis?: string | null;
+  genres?: Array<{ name?: string } | string> | null;
+};
+
+const getGenreNames = (genres: ExportMovie["genres"]) =>
+  (genres ?? [])
+    .map((genre) => (typeof genre === "string" ? genre : genre?.name ?? undefined))
+    .filter((name): name is string => Boolean(name));
+
+const getMovieDisplayValues = (movie: ExportMovie) => {
+  const genreNames = getGenreNames(movie.genres);
+  return {
+    title: movie.title?.trim() || "Untitled movie",
+    status: MOVIE_STATUS_LABEL[movie.status ?? ""] ?? "Unknown",
+    release_year: movie.release_year ? String(movie.release_year) : "—",
+    rating:
+      typeof movie.rating === "number" && movie.rating > 0
+        ? `${movie.rating} / 5`
+        : "—",
+    genres: genreNames.length ? genreNames.join(", ") : "—",
+    synopsis: movie.synopsis?.trim() || "No synopsis available.",
+    genreList: genreNames,
+  };
+};
+
+const triggerDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+};
 
 export default function SettingsPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -63,6 +104,8 @@ export default function SettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoggingOut, startLogout] = useTransition();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingJson, setIsExportingJson] = useState(false);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   const emitProfileEvent = useCallback((detail: {
     username?: string;
@@ -262,6 +305,24 @@ export default function SettingsPage() {
     });
   };
 
+  const getExportMovies = useCallback(async () => {
+    if (!userId) {
+      throw new Error("You must be logged in to export your collection.");
+    }
+
+    const { data, error } = await supabase
+      .from("movies")
+      .select("title, status, release_year, rating, synopsis, genres")
+      .eq("profile_id", userId)
+      .order("title", { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as ExportMovie[];
+  }, [supabase, userId]);
+
   const handleExportPdf = async () => {
     if (!userId) {
       toast.error("You must be logged in to export your collection.");
@@ -270,24 +331,7 @@ export default function SettingsPage() {
 
     setIsExportingPdf(true);
     try {
-      const { data, error } = await supabase
-        .from("movies")
-        .select("title, status, release_year, rating, synopsis, genres")
-        .eq("profile_id", userId)
-        .order("title", { ascending: true });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      const movies = (data ?? []) as Array<{
-        title: string | null;
-        status: string | null;
-        release_year: number | null;
-        rating?: number | null;
-        synopsis?: string | null;
-        genres?: Array<{ name?: string } | string> | null;
-      }>;
+      const movies = await getExportMovies();
 
       const doc = new jsPDF({ unit: "pt", format: "letter", orientation: "landscape" });
       const now = new Date();
@@ -368,24 +412,14 @@ export default function SettingsPage() {
         doc.text("No movies in your collection yet.", marginX, cursorY);
       } else {
         movies.forEach((movie) => {
+          const displayValues = getMovieDisplayValues(movie);
           const rowValues: Record<ExportColumnKey, string> = {
-            title: movie.title?.trim() || "Untitled movie",
-            status:
-              MOVIE_STATUS_LABEL[movie.status ?? ""] ?? "Unknown",
-            release_year: movie.release_year ? String(movie.release_year) : "—",
-            rating:
-              typeof movie.rating === "number" && movie.rating > 0
-                ? `${movie.rating} / 5`
-                : "—",
-            genres: (movie.genres ?? [])
-              .map((genre) =>
-                typeof genre === "string"
-                  ? genre
-                  : genre?.name ?? undefined
-              )
-              .filter((name): name is string => Boolean(name))
-              .join(", ") || "—",
-            synopsis: movie.synopsis?.trim() || "No synopsis available.",
+            title: displayValues.title,
+            status: displayValues.status,
+            release_year: displayValues.release_year,
+            rating: displayValues.rating,
+            genres: displayValues.genres,
+            synopsis: displayValues.synopsis,
           };
 
           const columnTexts = columns.map((column) =>
@@ -437,6 +471,100 @@ export default function SettingsPage() {
       toast.error(message);
     } finally {
       setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportJson = async () => {
+    if (!userId) {
+      toast.error("You must be logged in to export your collection.");
+      return;
+    }
+
+    setIsExportingJson(true);
+    try {
+      const movies = await getExportMovies();
+      const payload = {
+        generatedAt: new Date().toISOString(),
+        profile: {
+          username: username || null,
+          email: email || null,
+        },
+        movies: movies.map((movie) => {
+          const displayValues = getMovieDisplayValues(movie);
+          return {
+            title: displayValues.title,
+            status: displayValues.status,
+            releaseYear: movie.release_year ?? null,
+            rating:
+              typeof movie.rating === "number" && movie.rating > 0
+                ? movie.rating
+                : null,
+            genres: displayValues.genreList,
+            synopsis: movie.synopsis?.trim() || null,
+          };
+        }),
+      };
+
+      const filename = `retro-dex-collection-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      triggerDownload(blob, filename);
+      toast.success("JSON export ready.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not generate the JSON export.";
+      toast.error(message);
+    } finally {
+      setIsExportingJson(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    if (!userId) {
+      toast.error("You must be logged in to export your collection.");
+      return;
+    }
+
+    setIsExportingCsv(true);
+    try {
+      const movies = await getExportMovies();
+      const rows = movies.map((movie) => {
+        const displayValues = getMovieDisplayValues(movie);
+        return {
+          Title: displayValues.title,
+          Status: displayValues.status,
+          Year: movie.release_year ?? "",
+          Rating:
+            typeof movie.rating === "number" && movie.rating > 0
+              ? movie.rating
+              : "",
+          Genres: displayValues.genres === "—" ? "" : displayValues.genres,
+          Synopsis: movie.synopsis?.trim() || "",
+        };
+      });
+
+      const csv = Papa.unparse(rows, { quotes: true });
+      const filename = `retro-dex-collection-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;",
+      });
+      triggerDownload(blob, filename);
+      toast.success("CSV export ready.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not generate the CSV export.";
+      toast.error(message);
+    } finally {
+      setIsExportingCsv(false);
     }
   };
 
@@ -554,30 +682,34 @@ export default function SettingsPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full justify-between text-sm"
-              disabled
+              className="w-full justify-start gap-2 text-sm"
+              onClick={handleExportJson}
+              disabled={isExportingJson || isLoadingProfile}
             >
-              <span className="flex items-center gap-2">
+              {isExportingJson ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
                 <Download className="size-4" aria-hidden="true" />
-                Export as JSON
-              </span>
-              <span className="text-xs text-muted-foreground">Soon</span>
+              )}
+              <span>{isExportingJson ? "Generating JSON…" : "Export as JSON"}</span>
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="w-full justify-between text-sm"
-              disabled
+              className="w-full justify-start gap-2 text-sm"
+              onClick={handleExportCsv}
+              disabled={isExportingCsv || isLoadingProfile}
             >
-              <span className="flex items-center gap-2">
+              {isExportingCsv ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
                 <Download className="size-4" aria-hidden="true" />
-                Export as CSV
-              </span>
-              <span className="text-xs text-muted-foreground">Soon</span>
+              )}
+              <span>{isExportingCsv ? "Generating CSV…" : "Export as CSV"}</span>
             </Button>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               className="w-full justify-start gap-2 text-sm"
               onClick={handleExportPdf}
               disabled={isExportingPdf || isLoadingProfile}
