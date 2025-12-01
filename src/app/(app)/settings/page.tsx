@@ -6,8 +6,9 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
 } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/utils/supabase/client";
+import { logout } from "@/app/(auth)/login/actions";
 
 const MAX_AVATAR_SIZE_BYTES = 3 * 1024 * 1024; // 3MB safeguard
 const PROFILE_EVENT = "retro-profile-updated";
@@ -40,6 +42,7 @@ export default function SettingsPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isLoggingOut, startLogout] = useTransition();
 
   const emitProfileEvent = useCallback((detail: {
     username?: string;
@@ -227,6 +230,18 @@ export default function SettingsPage() {
     [emitProfileEvent, supabase, userId]
   );
 
+  const handleLogout = () => {
+    startLogout(async () => {
+      try {
+        await logout();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to log out.";
+        toast.error(message);
+      }
+    });
+  };
+
   return (
     <section className="space-y-6">
       <form onSubmit={handleProfileSave}>
@@ -285,6 +300,7 @@ export default function SettingsPage() {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <Button
+                          className="cursor-pointer"
                           type="button"
                           variant="outline"
                           onClick={() => fileInputRef.current?.click()}
@@ -317,7 +333,7 @@ export default function SettingsPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isSaveDisabled}>
+            <Button className="cursor-pointer" type="submit" disabled={isSaveDisabled}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -331,28 +347,31 @@ export default function SettingsPage() {
         </Card>
       </form>
 
-      <Card className="border-dashed">
+      <Card className="border border-red-400/40 bg-red-900/10">
         <CardHeader>
-          <CardTitle>Notification preferences</CardTitle>
-          <CardDescription>
-            Delivery channels will be configurable soon. For now this section is
-            read-only.
-          </CardDescription>
+          <CardTitle>Account Actions</CardTitle>
+          <CardDescription>Manage your account</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {["Weekly alerts", "New collections", "Social activity"].map(
-            (label) => (
-              <div key={label} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium leading-none">{label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Toggle support is coming soon.
-                  </p>
-                </div>
-                <Skeleton className="h-6 w-10 rounded-full" />
-              </div>
-            )
-          )}
+        <CardContent>
+          <Button
+            type="button"
+            variant="destructive"
+            className="w-1/8 cursor-pointer"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Logging out…
+              </>
+            ) : (
+              <>
+                <LogOut className="mr-2 size-4" />
+                Logout
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
     </section>
