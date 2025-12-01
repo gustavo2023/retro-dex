@@ -4,12 +4,22 @@ import {
   useMemo,
   useState,
   useEffect,
+  useId,
   type ChangeEvent,
   type FormEvent,
 } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Star, UploadCloud, LayoutGrid, List, Trash2 } from "lucide-react";
+import {
+  Star,
+  UploadCloud,
+  LayoutGrid,
+  List,
+  Trash2,
+  Search,
+  SquareLibrary,
+  ArrowDownUp,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +46,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
 import {
   AlertDialog,
@@ -77,6 +93,8 @@ type CollectionGridProps = {
   onMovieDeleted?: (id: string) => void;
 };
 
+type RatingSortOption = "none" | "asc" | "desc";
+
 export default function CollectionGrid({
   initialMovies,
   onMovieUpdated,
@@ -84,7 +102,12 @@ export default function CollectionGrid({
 }: CollectionGridProps) {
   const [movies, setMovies] = useState(initialMovies);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [yearSort, setYearSort] = useState<"none" | "asc" | "desc">("none");
+  const [ratingSort, setRatingSort] = useState<RatingSortOption>("none");
   const isMobile = useIsMobile();
+  const genreTriggerId = useId();
 
   useEffect(() => {
     setMovies(initialMovies);
@@ -102,58 +125,279 @@ export default function CollectionGrid({
     onMovieDeleted?.(deletedId);
   };
 
+  const availableGenres = useMemo(() => {
+    const genreSet = new Set<string>();
+
+    movies.forEach((movie) => {
+      (movie.genres ?? []).forEach((genre) => {
+        const label =
+          typeof genre === "string" ? genre : genre?.name ?? undefined;
+        if (label) {
+          genreSet.add(label);
+        }
+      });
+    });
+
+    return Array.from(genreSet)
+      .map((genre) => ({
+        label: genre,
+        value: genre.toLowerCase(),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [movies]);
+
+  useEffect(() => {
+    setSelectedGenres((prev) =>
+      prev.filter((genre) => availableGenres.some((item) => item.value === genre))
+    );
+  }, [availableGenres]);
+
+  const toggleGenre = (value: string, checked: boolean | "indeterminate") => {
+    setSelectedGenres((prev) => {
+      const normalized = value.toLowerCase();
+      if (checked) {
+        return prev.includes(normalized) ? prev : [...prev, normalized];
+      }
+      return prev.filter((genre) => genre !== normalized);
+    });
+  };
+
+  const filteredMovies = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    const filtered = movies.filter((movie) => {
+      if (normalizedQuery && !movie.title.toLowerCase().includes(normalizedQuery)) {
+        return false;
+      }
+
+      if (selectedGenres.length > 0) {
+        const movieGenres = (movie.genres ?? [])
+          .map((genre) =>
+            typeof genre === "string" ? genre : genre?.name ?? undefined
+          )
+          .filter((genre): genre is string => Boolean(genre))
+          .map((genre) => genre.toLowerCase());
+
+        const intersects = movieGenres.some((genre) =>
+          selectedGenres.includes(genre)
+        );
+
+        if (!intersects) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (ratingSort !== "none") {
+      const ratingMultiplier = ratingSort === "asc" ? 1 : -1;
+      return [...filtered].sort((movieA, movieB) => {
+        const aRating = movieA.rating ?? Number.NEGATIVE_INFINITY;
+        const bRating = movieB.rating ?? Number.NEGATIVE_INFINITY;
+
+        if (aRating === bRating) {
+          return movieA.title.localeCompare(movieB.title);
+        }
+
+        return (aRating - bRating) * ratingMultiplier;
+      });
+    }
+
+    if (yearSort === "none") {
+      return filtered;
+    }
+
+    const yearMultiplier = yearSort === "asc" ? 1 : -1;
+
+    return [...filtered].sort((movieA, movieB) => {
+      const aYear = movieA.release_year ?? (yearSort === "asc" ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER);
+      const bYear = movieB.release_year ?? (yearSort === "asc" ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER);
+
+      if (aYear === bYear) {
+        return movieA.title.localeCompare(movieB.title);
+      }
+
+      return (aYear - bYear) * yearMultiplier;
+    });
+  }, [movies, searchQuery, selectedGenres, ratingSort, yearSort]);
+
   if (!movies.length) {
     return null;
   }
 
   const effectiveLayout = isMobile ? "grid" : viewMode;
+  const hasFilteredResults = filteredMovies.length > 0;
+
+  const genreFilterLabel = selectedGenres.length
+    ? `${selectedGenres.length} genre${selectedGenres.length > 1 ? "s" : ""}`
+    : "All genres";
 
   return (
     <div className="space-y-4">
-      {!isMobile && (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant={viewMode === "grid" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            aria-pressed={viewMode === "grid"}
-            aria-label="Grid view"
-            title="Grid view"
-          >
-            <LayoutGrid className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-            aria-pressed={viewMode === "list"}
-            aria-label="List view"
-            title="List view"
-          >
-            <List className="size-4" />
-          </Button>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4 lg:max-w-4xl">
+          <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by title"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="pl-10"
+            aria-label="Search movies by title"
+          />
+        </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start gap-2"
+                  aria-label="Filter by genres"
+                  id={genreTriggerId}
+                >
+                  <SquareLibrary className="size-4" />
+                  <span className="truncate text-sm font-normal">
+                    {genreFilterLabel}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="start" sideOffset={8}>
+                <div className="max-h-64 overflow-y-auto p-1">
+                  {availableGenres.length === 0 ? (
+                    <p className="px-2 py-1 text-sm text-muted-foreground">
+                      No genres available
+                    </p>
+                  ) : (
+                    availableGenres.map(({ label, value }) => {
+                      const checked = selectedGenres.includes(value);
+                      return (
+                        <label
+                          key={value}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(checkedState) =>
+                              toggleGenre(value, checkedState === true)
+                            }
+                            onClick={(event) => event.stopPropagation()}
+                          />
+                          <span className="truncate">{label}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                {selectedGenres.length > 0 && (
+                  <div className="border-t px-2 py-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setSelectedGenres([])}
+                    >
+                      Clear selection
+                    </Button>
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Select
+              value={ratingSort}
+              onValueChange={(value) =>
+                setRatingSort(value as RatingSortOption)
+              }
+            >
+              <SelectTrigger
+                className="relative w-full pl-10 sm:w-40"
+                aria-label="Sort by rating"
+              >
+                <Star className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SelectValue placeholder="All ratings" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">All ratings</SelectItem>
+                <SelectItem value="desc">Highest rated</SelectItem>
+                <SelectItem value="asc">Lowest rated</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={yearSort}
+              onValueChange={(value) => setYearSort(value as "none" | "asc" | "desc")}
+            >
+              <SelectTrigger
+                className="relative w-full pl-10 sm:w-44"
+                aria-label="Sort by year"
+              >
+                <ArrowDownUp className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SelectValue placeholder="Default order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Default order</SelectItem>
+                <SelectItem value="desc">Newest first</SelectItem>
+                <SelectItem value="asc">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {!isMobile && (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              aria-pressed={viewMode === "grid"}
+              aria-label="Grid view"
+              title="Grid view"
+            >
+              <LayoutGrid className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              aria-pressed={viewMode === "list"}
+              aria-label="List view"
+              title="List view"
+            >
+              <List className="size-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {hasFilteredResults ? (
+        <div
+          className={
+            effectiveLayout === "grid"
+              ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+              : "flex flex-col gap-4"
+          }
+        >
+          {filteredMovies.map((movie) => (
+            <MovieEditDialog
+              key={movie.id}
+              movie={movie}
+              onMovieUpdated={handleMovieUpdated}
+              onMovieDeleted={handleMovieDeleted}
+              layout={effectiveLayout}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          No movies match "{searchQuery.trim()}". Try another title.
         </div>
       )}
-
-      <div
-        className={
-          effectiveLayout === "grid"
-            ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-            : "flex flex-col gap-4"
-        }
-      >
-        {movies.map((movie) => (
-          <MovieEditDialog
-            key={movie.id}
-            movie={movie}
-            onMovieUpdated={handleMovieUpdated}
-            onMovieDeleted={handleMovieDeleted}
-            layout={effectiveLayout}
-          />
-        ))}
-      </div>
     </div>
   );
 }
