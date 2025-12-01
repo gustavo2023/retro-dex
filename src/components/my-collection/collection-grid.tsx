@@ -20,6 +20,7 @@ import {
   Search,
   SquareLibrary,
   ArrowDownUp,
+  Clapperboard,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -105,10 +106,12 @@ export default function CollectionGrid({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<MovieStatus[]>([]);
   const [yearSort, setYearSort] = useState<"none" | "asc" | "desc">("none");
   const [ratingSort, setRatingSort] = useState<RatingSortOption>("none");
   const isMobile = useIsMobile();
   const genreTriggerId = useId();
+  const statusTriggerId = useId();
 
   useEffect(() => {
     setMovies(initialMovies);
@@ -165,6 +168,15 @@ export default function CollectionGrid({
     });
   };
 
+  const toggleStatus = (status: MovieStatus, checked: boolean) => {
+    setSelectedStatuses((prev) => {
+      if (checked) {
+        return prev.includes(status) ? prev : [...prev, status];
+      }
+      return prev.filter((value) => value !== status);
+    });
+  };
+
   const filteredMovies = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -191,6 +203,10 @@ export default function CollectionGrid({
         if (!intersects) {
           return false;
         }
+      }
+
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(movie.status)) {
+        return false;
       }
 
       return true;
@@ -234,7 +250,7 @@ export default function CollectionGrid({
 
       return (aYear - bYear) * yearMultiplier;
     });
-  }, [movies, searchQuery, selectedGenres, ratingSort, yearSort]);
+  }, [movies, searchQuery, selectedGenres, selectedStatuses, ratingSort, yearSort]);
 
   if (!movies.length) {
     return null;
@@ -246,6 +262,9 @@ export default function CollectionGrid({
   const genreFilterLabel = selectedGenres.length
     ? `${selectedGenres.length} genre${selectedGenres.length > 1 ? "s" : ""}`
     : "All genres";
+  const statusFilterLabel = selectedStatuses.length
+    ? `${selectedStatuses.length} ${selectedStatuses.length > 1 ? "statuses" : "status"}`
+    : "All statuses";
 
   return (
     <div className="space-y-4">
@@ -321,6 +340,59 @@ export default function CollectionGrid({
                       onClick={() => setSelectedGenres([])}
                     >
                       Clear selection
+                    </Button>
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start gap-2"
+                  aria-label="Filter by status"
+                  id={statusTriggerId}
+                >
+                  <Clapperboard className="size-4" />
+                  <span className="truncate text-sm font-normal">
+                    {statusFilterLabel}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-48" align="start" sideOffset={8}>
+                <div className="space-y-1 p-1">
+                  {Object.entries(STATUS_LABEL).map(([value, label]) => {
+                    const statusValue = value as MovieStatus;
+                    const checked = selectedStatuses.includes(statusValue);
+                    return (
+                      <label
+                        key={statusValue}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(checkedState) =>
+                            toggleStatus(statusValue, checkedState === true)
+                          }
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedStatuses.length > 0 && (
+                  <div className="border-t px-2 py-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setSelectedStatuses([])}
+                    >
+                      Clear status filter
                     </Button>
                   </div>
                 )}
@@ -586,13 +658,15 @@ function MovieEditDialog({
         userPosterUrl = `${STORAGE_BASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
       }
 
+      const normalizedReview = canEditReview ? review.trim() : "";
+
       const payload = {
         status,
-        rating: rating > 0 ? rating : null,
-        personal_review: review.trim() ? review.trim() : null,
+        rating: canEditRating && rating > 0 ? rating : null,
+        personal_review: normalizedReview ? normalizedReview : null,
         user_poster_url: userPosterUrl,
         estimated_price: estimatedPrice,
-        watched_at: status === "watched" ? new Date().toISOString() : null,
+        watched_at: isWatched ? new Date().toISOString() : null,
       };
 
       const { data, error: updateError } = await supabase
@@ -685,6 +759,7 @@ function MovieEditDialog({
     genreNames.length - gridVisibleGenres.length,
     0
   );
+  const shouldShowCardStars = movie.status === "watched";
 
   const isGridLayout = layout === "grid";
   const titleClass = isGridLayout ? "text-base" : "text-2xl";
@@ -701,7 +776,10 @@ function MovieEditDialog({
     </span>
   );
   const hoverBorderClass = STATUS_HOVER_BORDER[movie.status];
-  const shouldShowPriceField = status === "owned" || status === "watched";
+  const isWatched = status === "watched";
+  const shouldShowPriceField = status === "owned" || isWatched;
+  const canEditReview = isWatched;
+  const canEditRating = isWatched;
   const renderStaticStars = (sizeClass = "size-4", wrapperClassName = "") => (
     <div
       className={`flex gap-0.5 text-amber-500 ${wrapperClassName}`}
@@ -774,7 +852,7 @@ function MovieEditDialog({
                         {releaseYear}
                       </CardDescription>
                     </div>
-                    {renderStaticStars("size-4")}
+                    {shouldShowCardStars && renderStaticStars("size-4")}
                   </div>
                   {genreNames.length > 0 && (
                     <div className="flex flex-nowrap items-center gap-1.5 overflow-hidden">
@@ -855,7 +933,7 @@ function MovieEditDialog({
                 >
                   {ratingValue > 0 ? (
                     <div className="flex items-center">
-                      {renderStaticStars("size-4")}
+                      {shouldShowCardStars && renderStaticStars("size-4")}
                     </div>
                   ) : (
                     <span>No rating yet</span>
@@ -988,50 +1066,54 @@ function MovieEditDialog({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Rating</Label>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1">
-                {STAR_VALUES.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => handleRatingClick(value)}
-                    className="text-amber-500"
-                    aria-label={`Assign ${value} stars`}
-                  >
-                    <Star
-                      className={`size-6 ${
-                        value <= rating ? "fill-current" : "stroke-current"
-                      }`}
-                    />
-                  </button>
-                ))}
+          {canEditRating && (
+            <div className="space-y-2">
+              <Label>Rating</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  {STAR_VALUES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleRatingClick(value)}
+                      className="text-amber-500"
+                      aria-label={`Assign ${value} stars`}
+                    >
+                      <Star
+                        className={`size-6 ${
+                          value <= rating ? "fill-current" : "stroke-current"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearRating}
+                >
+                  Clear
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {rating > 0 ? `${rating}/5` : "No rating"}
+                </span>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleClearRating}
-              >
-                Clear
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {rating > 0 ? `${rating}/5` : "No rating"}
-              </span>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
-            <textarea
-              id={`review-${movie.id}`}
-              className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              placeholder="Write your private notes"
-              value={review}
-              onChange={(event) => setReview(event.target.value)}
-            />
-          </div>
+          {canEditReview && (
+            <div className="space-y-2">
+              <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
+              <textarea
+                id={`review-${movie.id}`}
+                className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                placeholder="Write your private notes"
+                value={review}
+                onChange={(event) => setReview(event.target.value)}
+              />
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

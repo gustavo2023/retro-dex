@@ -20,8 +20,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClient } from "@/utils/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { createClient } from "@/utils/supabase/client";
 import {
   Search,
   Plus,
@@ -31,6 +39,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { STATUS_LABEL, type MovieStatus } from "@/lib/movies";
 type MovieResult = {
   id: number;
   title: string;
@@ -46,6 +55,13 @@ type MovieResult = {
 type AddState = {
   status: "idle" | "loading" | "success" | "error";
   message?: string;
+};
+
+type AddMovieOptions = {
+  status: MovieStatus;
+  estimatedPrice: number | null;
+  rating: number | null;
+  personalReview: string | null;
 };
 
 type CollectionKey = "popular" | "top_rated" | "upcoming";
@@ -83,6 +99,8 @@ const collectionSections: Array<{
     accentClass: "text-blue-400",
   },
 ];
+
+const RATING_VALUES = [1, 2, 3, 4, 5];
 
 const getPosterUrl = (path?: string | null, size: "w500" | "w780" = "w500") =>
   path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
@@ -261,7 +279,10 @@ export default function DiscoverPage() {
     }
   };
 
-  const handleAddToCollection = async (movie: MovieResult) => {
+  const handleAddToCollection = async (
+    movie: MovieResult,
+    options: AddMovieOptions
+  ) => {
     if (ownedTmdbIds[movie.id]) {
       setAddStates((prev) => ({
         ...prev,
@@ -287,15 +308,35 @@ export default function DiscoverPage() {
         throw new Error("You must be logged in to add movies.");
       }
 
+      const desiredStatus = options.status;
+      const requiresPrice = desiredStatus === "owned" || desiredStatus === "watched";
+
+      if (requiresPrice && options.estimatedPrice == null) {
+        throw new Error("Please include the purchase price for this movie.");
+      }
+
+      const ratingValue =
+        desiredStatus === "watched" && options.rating && options.rating > 0
+          ? options.rating
+          : null;
+      const reviewValue =
+        desiredStatus === "watched" && options.personalReview
+          ? options.personalReview.trim() || null
+          : null;
+
       const { error } = await supabase.from("movies").insert({
         profile_id: currentProfileId,
-        status: "wishlist",
+        status: desiredStatus,
         tmdb_id: movie.id,
         title: movie.title,
         release_year: releaseYear,
         synopsis: movie.overview ?? null,
         tmdb_poster_path: movie.poster_path ?? null,
         genres: movie.genres ?? null,
+        estimated_price: options.estimatedPrice,
+        rating: ratingValue,
+        personal_review: reviewValue,
+        watched_at: desiredStatus === "watched" ? new Date().toISOString() : null,
       });
 
       if (error) {
@@ -543,7 +584,7 @@ type MovieDialogCardProps = {
   isAdding: boolean;
   showSuccess: boolean;
   isCollectionLoading: boolean;
-  onAdd: (movie: MovieResult) => void;
+  onAdd: (movie: MovieResult, options: AddMovieOptions) => void;
 };
 
 function MovieDialogCard({
@@ -557,13 +598,80 @@ function MovieDialogCard({
 }: MovieDialogCardProps) {
   const posterUrl = getPosterUrl(movie.poster_path);
   const genres = movie.genres ?? [];
+  const [isOpen, setIsOpen] = useState(false);
+  const [status, setStatus] = useState<MovieStatus>("wishlist");
+  const [price, setPrice] = useState("");
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const requiresPrice = status === "owned" || status === "watched";
+  const canEditRating = false;
+  const canEditReview = false;
+  const isBusy = isAdding || isCollectionLoading;
+
+  const resetForm = () => {
+    setStatus("wishlist");
+    setPrice("");
+    setRating(0);
+    setReview("");
+    setFormError(null);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setIsOpen(nextOpen);
+    if (nextOpen) {
+      resetForm();
+    } else {
+      setFormError(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!requiresPrice) {
+      setPrice("");
+    }
+    if (!canEditRating) {
+      setRating(0);
+    }
+    if (!canEditReview) {
+      setReview("");
+    }
+  }, [requiresPrice, canEditRating, canEditReview]);
+
+  const handleAdd = () => {
+    if (isBusy) return;
+    setFormError(null);
+
+    let parsedPrice: number | null = null;
+
+    if (requiresPrice) {
+      const trimmedPrice = price.trim();
+      if (!trimmedPrice) {
+        setFormError("Please enter the purchase price for this status.");
+        return;
+      }
+      parsedPrice = Number.parseFloat(trimmedPrice);
+      if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+        setFormError("Enter a valid non-negative price.");
+        return;
+      }
+    }
+
+    onAdd(movie, {
+      status,
+      estimatedPrice: parsedPrice,
+      rating: canEditRating && rating > 0 ? rating : null,
+      personalReview: canEditReview && review.trim() ? review.trim() : null,
+    });
+  };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-4xl lg:max-w-5xl">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="relative mx-auto aspect-3/4 w-44 overflow-hidden rounded-xl bg-muted sm:w-60 lg:mx-0 lg:w-72">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="relative mx-auto aspect-3/4 w-44 overflow-hidden rounded-xl bg-muted sm:w-60 lg:mx-0 lg:w-72 lg:self-start">
             {posterUrl ? (
               <Image
                 src={posterUrl}
@@ -643,6 +751,106 @@ function MovieDialogCard({
               </div>
             </div>
 
+            {!showSuccess && (
+              <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/10 p-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`status-${movie.id}`}>Add as</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(value) => setStatus(value as MovieStatus)}
+                    disabled={isBusy}
+                  >
+                    <SelectTrigger id={`status-${movie.id}`}>
+                      <SelectValue placeholder="Choose a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(STATUS_LABEL).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {requiresPrice && (
+                  <div className="space-y-2">
+                    <Label htmlFor={`price-${movie.id}`}>Purchase price</Label>
+                    <Input
+                      id={`price-${movie.id}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      placeholder="e.g. 24.99"
+                      value={price}
+                      onChange={(event) => setPrice(event.target.value)}
+                      disabled={isBusy}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required for owned or watched movies.
+                    </p>
+                  </div>
+                )}
+
+                {canEditRating && (
+                  <div className="space-y-2">
+                    <Label>Rating</Label>
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {RATING_VALUES.map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => !isBusy && setRating(value)}
+                            className={`text-amber-500 ${
+                              isBusy ? "cursor-not-allowed opacity-50" : ""
+                            }`}
+                            aria-label={`Assign ${value} stars`}
+                            disabled={isBusy}
+                          >
+                            <Star
+                              className={`size-6 ${
+                                value <= rating
+                                  ? "fill-current"
+                                  : "stroke-current"
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRating(0)}
+                        disabled={isBusy || rating === 0}
+                      >
+                        Clear
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        {rating > 0 ? `${rating}/5` : "No rating"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {canEditReview && (
+                  <div className="space-y-2">
+                    <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
+                    <textarea
+                      id={`review-${movie.id}`}
+                      className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                      placeholder="Write your private notes"
+                      value={review}
+                      onChange={(event) => setReview(event.target.value)}
+                      disabled={isBusy}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2 pt-1">
               {showSuccess ? (
                 <p className="text-sm text-emerald-600">
@@ -651,17 +859,25 @@ function MovieDialogCard({
               ) : (
                 <>
                   <Button
-                    onClick={() => onAdd(movie)}
-                    disabled={isAdding || isCollectionLoading}
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={isBusy}
                     className="w-full cursor-pointer sm:w-auto"
                   >
                     <Plus className="size-4" aria-hidden="true" />
                     {isAdding ? "Adding…" : "Add to my collection"}
                   </Button>
-                  {addState?.status === "error" && addState.message && (
-                    <p className="text-sm text-destructive">
-                      {addState.message}
-                    </p>
+                  {(formError || (addState?.status === "error" && addState.message)) && (
+                    <div className="space-y-1">
+                      {formError && (
+                        <p className="text-sm text-destructive">{formError}</p>
+                      )}
+                      {addState?.status === "error" && addState.message && (
+                        <p className="text-sm text-destructive">
+                          {addState.message}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </>
               )}
