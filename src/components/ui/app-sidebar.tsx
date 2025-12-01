@@ -48,6 +48,8 @@ const secondaryItems = [
   },
 ];
 
+const PROFILE_EVENT = "retro-profile-updated";
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
@@ -105,6 +107,37 @@ export function AppSidebar() {
       isMounted = false;
     };
   }, [supabase]);
+
+  useEffect(() => {
+    const handleProfileEvent = (
+      event: CustomEvent<{ username?: string; avatarUrl?: string | null }>
+    ) => {
+      if (!event.detail) return;
+      setUserProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              username: event.detail.username ?? prev.username,
+              avatar_url:
+                event.detail.avatarUrl !== undefined
+                  ? event.detail.avatarUrl
+                  : prev.avatar_url,
+            }
+          : prev
+      );
+    };
+
+    window.addEventListener(
+      PROFILE_EVENT,
+      handleProfileEvent as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        PROFILE_EVENT,
+        handleProfileEvent as EventListener
+      );
+    };
+  }, []);
 
   return (
     <Sidebar variant="inset" collapsible="icon">
