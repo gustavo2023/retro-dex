@@ -7,6 +7,7 @@ import {
   useId,
   type ChangeEvent,
   type FormEvent,
+  type MouseEvent,
 } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -148,7 +149,9 @@ export default function CollectionGrid({
 
   useEffect(() => {
     setSelectedGenres((prev) =>
-      prev.filter((genre) => availableGenres.some((item) => item.value === genre))
+      prev.filter((genre) =>
+        availableGenres.some((item) => item.value === genre)
+      )
     );
   }, [availableGenres]);
 
@@ -166,7 +169,10 @@ export default function CollectionGrid({
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     const filtered = movies.filter((movie) => {
-      if (normalizedQuery && !movie.title.toLowerCase().includes(normalizedQuery)) {
+      if (
+        normalizedQuery &&
+        !movie.title.toLowerCase().includes(normalizedQuery)
+      ) {
         return false;
       }
 
@@ -211,8 +217,16 @@ export default function CollectionGrid({
     const yearMultiplier = yearSort === "asc" ? 1 : -1;
 
     return [...filtered].sort((movieA, movieB) => {
-      const aYear = movieA.release_year ?? (yearSort === "asc" ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER);
-      const bYear = movieB.release_year ?? (yearSort === "asc" ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER);
+      const aYear =
+        movieA.release_year ??
+        (yearSort === "asc"
+          ? Number.MAX_SAFE_INTEGER
+          : Number.MIN_SAFE_INTEGER);
+      const bYear =
+        movieB.release_year ??
+        (yearSort === "asc"
+          ? Number.MAX_SAFE_INTEGER
+          : Number.MIN_SAFE_INTEGER);
 
       if (aYear === bYear) {
         return movieA.title.localeCompare(movieB.title);
@@ -238,16 +252,16 @@ export default function CollectionGrid({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4 lg:max-w-4xl">
           <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search by title"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            className="pl-10"
-            aria-label="Search movies by title"
-          />
-        </div>
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by title"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="pl-10"
+              aria-label="Search movies by title"
+            />
+          </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -264,7 +278,11 @@ export default function CollectionGrid({
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="start" sideOffset={8}>
+              <DropdownMenuContent
+                className="w-56"
+                align="start"
+                sideOffset={8}
+              >
                 <div className="max-h-64 overflow-y-auto p-1">
                   {availableGenres.length === 0 ? (
                     <p className="px-2 py-1 text-sm text-muted-foreground">
@@ -280,10 +298,12 @@ export default function CollectionGrid({
                         >
                           <Checkbox
                             checked={checked}
-                            onCheckedChange={(checkedState) =>
-                              toggleGenre(value, checkedState === true)
+                            onCheckedChange={(
+                              checkedState: boolean | "indeterminate"
+                            ) => toggleGenre(value, checkedState === true)}
+                            onClick={(event: MouseEvent) =>
+                              event.stopPropagation()
                             }
-                            onClick={(event) => event.stopPropagation()}
                           />
                           <span className="truncate">{label}</span>
                         </label>
@@ -329,7 +349,9 @@ export default function CollectionGrid({
 
             <Select
               value={yearSort}
-              onValueChange={(value) => setYearSort(value as "none" | "asc" | "desc")}
+              onValueChange={(value) =>
+                setYearSort(value as "none" | "asc" | "desc")
+              }
             >
               <SelectTrigger
                 className="relative w-full pl-10 sm:w-44"
@@ -395,7 +417,7 @@ export default function CollectionGrid({
         </div>
       ) : (
         <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No movies match "{searchQuery.trim()}". Try another title.
+          No movies match &quot;{searchQuery.trim()}&quot;. Try another title.
         </div>
       )}
     </div>
