@@ -44,9 +44,7 @@ export const STATUS_STYLES: Record<MovieStatus, string> = {
 
 export const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-export const formatCurrency = (
-  value: number | string | null | undefined
-) => {
+export const formatCurrency = (value: number | string | null | undefined) => {
   if (value === null || value === undefined) return "—";
   const numericValue =
     typeof value === "number" ? value : Number.parseFloat(String(value));
@@ -54,7 +52,8 @@ export const formatCurrency = (
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(numericValue);
 };
 
