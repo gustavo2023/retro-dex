@@ -309,7 +309,8 @@ export default function DiscoverPage() {
       }
 
       const desiredStatus = options.status;
-      const requiresPrice = desiredStatus === "owned" || desiredStatus === "watched";
+      const requiresPrice =
+        desiredStatus === "owned" || desiredStatus === "watched";
 
       if (requiresPrice && options.estimatedPrice == null) {
         throw new Error("Please include the purchase price for this movie.");
@@ -336,7 +337,8 @@ export default function DiscoverPage() {
         estimated_price: options.estimatedPrice,
         rating: ratingValue,
         personal_review: reviewValue,
-        watched_at: desiredStatus === "watched" ? new Date().toISOString() : null,
+        watched_at:
+          desiredStatus === "watched" ? new Date().toISOString() : null,
       });
 
       if (error) {
@@ -629,8 +631,9 @@ function MovieDialogCard({
     }
   };
 
-  useEffect(() => {
-    if (!requiresPrice) {
+  const handleStatusChange = (nextStatus: MovieStatus) => {
+    setStatus(nextStatus);
+    if (nextStatus !== "owned" && nextStatus !== "watched") {
       setPrice("");
     }
     if (!canEditRating) {
@@ -639,7 +642,7 @@ function MovieDialogCard({
     if (!canEditReview) {
       setReview("");
     }
-  }, [requiresPrice, canEditRating, canEditReview]);
+  };
 
   const handleAdd = () => {
     if (isBusy) return;
@@ -759,7 +762,9 @@ function MovieDialogCard({
                   <Label htmlFor={`status-${movie.id}`}>Add as</Label>
                   <Select
                     value={status}
-                    onValueChange={(value) => setStatus(value as MovieStatus)}
+                    onValueChange={(value) =>
+                      handleStatusChange(value as MovieStatus)
+                    }
                     disabled={isBusy}
                   >
                     <SelectTrigger id={`status-${movie.id}`}>
@@ -839,7 +844,9 @@ function MovieDialogCard({
 
                 {canEditReview && (
                   <div className="space-y-2">
-                    <Label htmlFor={`review-${movie.id}`}>Personal review</Label>
+                    <Label htmlFor={`review-${movie.id}`}>
+                      Personal review
+                    </Label>
                     <textarea
                       id={`review-${movie.id}`}
                       className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
@@ -869,7 +876,8 @@ function MovieDialogCard({
                     <Plus className="size-4" aria-hidden="true" />
                     {isAdding ? "Adding…" : "Add to my collection"}
                   </Button>
-                  {(formError || (addState?.status === "error" && addState.message)) && (
+                  {(formError ||
+                    (addState?.status === "error" && addState.message)) && (
                     <div className="space-y-1">
                       {formError && (
                         <p className="text-sm text-destructive">{formError}</p>
@@ -925,7 +933,8 @@ function TmdbAttributionFooter() {
           <span className="font-medium text-foreground">TMDB Credits</span>
         </div>
         <p className="max-w-prose">
-          This product uses the TMDB API but is not endorsed or certified by TMDB.
+          This product uses the TMDB API but is not endorsed or certified by
+          TMDB.
         </p>
       </div>
     </footer>
