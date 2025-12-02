@@ -30,7 +30,7 @@ const primaryItems = [
   },
   {
     href: "/discover",
-    label: "Explore",
+    label: "Discover",
     icon: Compass,
   },
   {
